@@ -11,13 +11,12 @@ from dotenv import load_dotenv
 
 import database as db
 
-# Load environment configuration
 load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', 'campus_gate_security_prod_secret_key_2026_x89q')
 
-# Initialize database
+# Initialize database schema cleanly
 db.init_db()
 
 # Authentication & Access Decorators
@@ -61,6 +60,7 @@ def login():
         return redirect(url_for('index'))
         
     guard_count = db.get_guard_count()
+    active_tab = request.args.get('tab', 'login')
     
     if request.method == 'POST':
         action = request.form.get('action')
@@ -70,16 +70,17 @@ def login():
             phone = request.form.get('phone', '').strip()
             password = request.form.get('password', '').strip()
             confirm_password = request.form.get('confirm_password', '').strip()
+            role = request.form.get('role', 'guard').strip()
             
             if not name or not phone or not password:
-                flash("All fields are required for guard registration.", "danger")
+                flash("All fields are required for account registration.", "danger")
                 return render_template('login.html', guard_count=guard_count, active_tab='signup')
                 
             if password != confirm_password:
                 flash("Passwords do not match.", "danger")
                 return render_template('login.html', guard_count=guard_count, active_tab='signup')
                 
-            success, message = db.register_guard(name, phone, password)
+            success, message = db.register_user(name, phone, password, role)
             if success:
                 flash(message, "success")
                 return render_template('login.html', guard_count=db.get_guard_count(), active_tab='login')
@@ -92,7 +93,7 @@ def login():
             password = request.form.get('password', '').strip()
             
             if not identifier or not password:
-                flash("Please provide phone/username and password.", "danger")
+                flash("Please provide mobile number/username and password.", "danger")
                 return render_template('login.html', guard_count=guard_count, active_tab='login')
                 
             user = db.authenticate_user(identifier, password)
@@ -110,7 +111,7 @@ def login():
                 flash("Invalid phone number / username or password.", "danger")
                 return render_template('login.html', guard_count=guard_count, active_tab='login')
                 
-    return render_template('login.html', guard_count=guard_count, active_tab='login')
+    return render_template('login.html', guard_count=guard_count, active_tab=active_tab)
 
 @app.route('/logout')
 def logout():
@@ -129,7 +130,7 @@ def guard_dashboard():
     search_q = request.args.get('search', '').strip()
     status_f = request.args.get('status', 'ALL').strip()
     
-    recent_logs = db.get_recent_vehicle_logs(search_query=search_q, status_filter=status_f, days=7)
+    recent_logs = db.get_recent_vehicle_logs(search_query=search_q, status_filter=status_f, days=30)
     now_iso = datetime.now().strftime("%Y-%m-%dT%H:%M")
     
     return render_template(
@@ -231,6 +232,37 @@ def admin_dashboard():
         search_q=search_q
     )
 
+@app.route('/admin/users/delete/<int:user_id>', methods=['POST'])
+@login_required
+@role_required('admin')
+def delete_user(user_id):
+    success, message = db.delete_user(user_id)
+    if success:
+        flash(message, "success")
+    else:
+        flash(message, "danger")
+    return redirect(url_for('admin_dashboard'))
+
+@app.route('/admin/users/reset_password/<int:user_id>', methods=['POST'])
+@login_required
+@role_required('admin')
+def reset_user_password(user_id):
+    new_pass = request.form.get('new_password', '').strip()
+    success, message = db.reset_user_password(user_id, new_pass)
+    if success:
+        flash(message, "success")
+    else:
+        flash(message, "danger")
+    return redirect(url_for('admin_dashboard'))
+
+@app.route('/admin/clear_logs', methods=['POST'])
+@login_required
+@role_required('admin')
+def clear_all_logs():
+    success, message = db.wipe_all_vehicle_logs()
+    flash(message, "info")
+    return redirect(url_for('admin_dashboard'))
+
 @app.route('/api/admin/hourly_chart')
 @login_required
 @role_required('admin')
@@ -238,19 +270,6 @@ def hourly_chart_api():
     date_str = request.args.get('date', datetime.now().strftime("%Y-%m-%d"))
     chart_data = db.get_hourly_peak_data(date_str)
     return jsonify(chart_data)
-
-@app.route('/admin/reset_data', methods=['POST'])
-@login_required
-@role_required('admin')
-def admin_reset_data():
-    mode = request.form.get('mode', 'clean')
-    if mode == 'seed':
-        db.seed_database()
-        flash("Sample demo dataset seeded successfully!", "success")
-    else:
-        db.init_db(reset_clean=True)
-        flash("Database reset to 100% CLEAN production state!", "warning")
-    return redirect(url_for('admin_dashboard'))
 
 @app.route('/admin/export/csv')
 @login_required
@@ -338,6 +357,6 @@ def export_excel():
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
     host = os.getenv('HOST', '0.0.0.0')
-    print("Starting Campus Gate Entry & Vehicle Management System...")
+    print("Starting Campus Gate Entry & Vehicle Management System (Production)...")
     print(f"Local Server running on http://{host}:{port}")
     app.run(host=host, port=port, debug=True)

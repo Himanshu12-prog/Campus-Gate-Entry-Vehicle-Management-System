@@ -1,8 +1,6 @@
 import sqlite3
 import os
-import sys
 from datetime import datetime, timedelta
-import random
 from werkzeug.security import generate_password_hash, check_password_hash
 
 DB_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'campus_vehicle.db')
@@ -12,15 +10,15 @@ def get_db_connection():
     conn.row_factory = sqlite3.Row
     return conn
 
-def init_db(reset_clean=False):
-    if reset_clean and os.path.exists(DB_FILE):
+def init_db(clean_all=False):
+    if clean_all and os.path.exists(DB_FILE):
         os.remove(DB_FILE)
-        print("Existing database removed for fresh clean setup.")
+        print("[✓] Removed old database for fresh production setup.")
 
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    # Create Users table
+    # Create Users table (Supports both Guard and Admin roles)
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -32,7 +30,7 @@ def init_db(reset_clean=False):
         )
     ''')
     
-    # Create Vehicle Logs table (with gate_name column)
+    # Create Vehicle Logs table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS vehicle_logs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -52,19 +50,29 @@ def init_db(reset_clean=False):
         )
     ''')
     
+    # Migration check for gate_name
+    cursor.execute("PRAGMA table_info(vehicle_logs)")
+    columns = [col[1] for col in cursor.fetchall()]
+    if 'gate_name' not in columns:
+        try:
+            cursor.execute("ALTER TABLE vehicle_logs ADD COLUMN gate_name TEXT DEFAULT 'Main Gate 1'")
+            conn.commit()
+        except Exception:
+            pass
+            
     conn.commit()
     
-    # Ensure Default Admin exists
+    # Default Master Admin (fallback if no admin exists)
     cursor.execute("SELECT * FROM users WHERE role = 'admin'")
     admin = cursor.fetchone()
     if not admin:
         admin_pass_hash = generate_password_hash('admin123')
         cursor.execute(
-            "INSERT INTO users (name, phone, password_hash, role) VALUES (?, ?, ?, ?)",
-            ('Principal Admin', '9999999999', admin_pass_hash, 'admin')
+            "INSERT INTO users (name, phone, password_hash, role) VALUES (?, ?, ?, 'admin')",
+            ('Principal Admin', 'admin', admin_pass_hash)
         )
         conn.commit()
-        print("Default admin created (Username/Phone: 9999999999 / admin, Password: admin123)")
+        print("[✓] Default Master Admin created (Username: admin, Password: admin123)")
     
     conn.close()
 
@@ -76,48 +84,89 @@ def get_guard_count():
     conn.close()
     return row['count'] if row else 0
 
-def register_guard(name, phone, password):
-    cleaned_phone = str(phone).strip()
-    if not cleaned_phone.isdigit() or len(cleaned_phone) != 10:
-        return False, "Phone number must be exactly 10 digits."
-    
-    current_guards = get_guard_count()
-    if current_guards >= 3:
-        return False, "Maximum limit of 3 Guard accounts reached. Contact Administrator."
-    
+def register_user(name, phone_or_username, password, role='guard'):
+    identifier = str(phone_or_username).strip()
+    if not name or not identifier or not password:
+        return False, "All fields are required."
+        
+    if role not in ['guard', 'admin']:
+        return False, "Invalid account role selected."
+
+    if role == 'guard':
+        if not identifier.isdigit() or len(identifier) != 10:
+            return False, "Guard mobile number must be exactly 10 numeric digits."
+
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    cursor.execute("SELECT id FROM users WHERE phone = ?", (cleaned_phone,))
+    cursor.execute("SELECT id FROM users WHERE phone = ?", (identifier,))
     if cursor.fetchone():
         conn.close()
-        return False, "Phone number is already registered."
+        return False, f"Account identifier '{identifier}' is already registered."
     
     pass_hash = generate_password_hash(password)
     cursor.execute(
         "INSERT INTO users (name, phone, password_hash, role) VALUES (?, ?, ?, ?)",
-        (name.strip(), cleaned_phone, pass_hash, 'guard')
+        (name.strip(), identifier, pass_hash, role)
     )
     conn.commit()
     conn.close()
-    return True, "Guard registered successfully! Please login."
+    
+    role_label = "Principal Admin" if role == 'admin' else "Gate Guard"
+    return True, f"{role_label} account for '{name}' created successfully! Please sign in."
+
+def register_guard(name, phone, password):
+    return register_user(name, phone, password, role='guard')
 
 def authenticate_user(identifier, password):
     identifier = str(identifier).strip()
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    if identifier.lower() == 'admin':
-        cursor.execute("SELECT * FROM users WHERE role = 'admin'")
-    else:
-        cursor.execute("SELECT * FROM users WHERE phone = ?", (identifier,))
-        
+    cursor.execute("SELECT * FROM users WHERE phone = ?", (identifier,))
     user = cursor.fetchone()
+    
+    if not user and identifier.lower() == 'admin':
+        cursor.execute("SELECT * FROM users WHERE role = 'admin' LIMIT 1")
+        user = cursor.fetchone()
+        
     conn.close()
     
     if user and check_password_hash(user['password_hash'], password):
         return dict(user)
     return None
+
+def delete_user(user_id):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,))
+    user = cursor.fetchone()
+    if not user:
+        conn.close()
+        return False, "User account not found."
+        
+    cursor.execute("DELETE FROM users WHERE id = ?", (user_id,))
+    conn.commit()
+    conn.close()
+    return True, f"Account '{user['name']}' removed successfully."
+
+def delete_guard(guard_id):
+    return delete_user(guard_id)
+
+def reset_user_password(user_id, new_password):
+    if not new_password or len(new_password) < 4:
+        return False, "Password must be at least 4 characters."
+        
+    pass_hash = generate_password_hash(new_password)
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE users SET password_hash = ? WHERE id = ?", (pass_hash, user_id))
+    conn.commit()
+    conn.close()
+    return True, "Password updated successfully."
+
+def reset_guard_password(guard_id, new_password):
+    return reset_user_password(guard_id, new_password)
 
 def format_vehicle_number(v_num):
     cleaned = "".join(v_num.upper().split())
@@ -126,7 +175,7 @@ def format_vehicle_number(v_num):
 def add_vehicle_entry(student_name, vehicle_number, year_branch, purpose, gate_name, entry_time_str, guard_id, guard_name):
     formatted_v_num = format_vehicle_number(vehicle_number)
     if not formatted_v_num or len(formatted_v_num) < 6:
-        return False, "Invalid vehicle number. Format example: MP04AB1234", None
+        return False, "Invalid vehicle number format. Example: MP04AB1234", None
 
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -138,7 +187,7 @@ def add_vehicle_entry(student_name, vehicle_number, year_branch, purpose, gate_n
     active_entry = cursor.fetchone()
     if active_entry:
         conn.close()
-        return False, f"Vehicle {formatted_v_num} is ALREADY inside campus (Entered at {active_entry['entry_time']}). Please mark exit first.", None
+        return False, f"Vehicle {formatted_v_num} is ALREADY inside campus (Entered at {active_entry['entry_time']}). Mark exit first.", None
     
     if entry_time_str:
         try:
@@ -157,7 +206,7 @@ def add_vehicle_entry(student_name, vehicle_number, year_branch, purpose, gate_n
     conn.commit()
     new_id = cursor.lastrowid
     conn.close()
-    return True, f"Vehicle {formatted_v_num} entry logged successfully!", new_id
+    return True, f"Vehicle {formatted_v_num} entry recorded successfully!", new_id
 
 def mark_vehicle_exit(log_id, exit_time_str=None):
     conn = get_db_connection()
@@ -171,7 +220,7 @@ def mark_vehicle_exit(log_id, exit_time_str=None):
     
     if log['status'] == 'EXITED':
         conn.close()
-        return False, f"Vehicle {log['vehicle_number']} has already exited at {log['exit_time']}."
+        return False, f"Vehicle {log['vehicle_number']} has already exited."
     
     if exit_time_str:
         try:
@@ -236,7 +285,7 @@ def get_active_inside_vehicles():
         result.append(d)
     return result
 
-def get_recent_vehicle_logs(search_query="", status_filter="ALL", days=7):
+def get_recent_vehicle_logs(search_query="", status_filter="ALL", days=30):
     conn = get_db_connection()
     cursor = conn.cursor()
     
@@ -253,7 +302,7 @@ def get_recent_vehicle_logs(search_query="", status_filter="ALL", days=7):
         query += " AND (vehicle_number LIKE ? OR student_name LIKE ? OR guard_name LIKE ? OR purpose LIKE ?)"
         params.extend([search_param, search_param, search_param, search_param])
         
-    query += " ORDER BY entry_time DESC LIMIT 200"
+    query += " ORDER BY entry_time DESC LIMIT 500"
     
     cursor.execute(query, params)
     rows = cursor.fetchall()
@@ -369,101 +418,13 @@ def get_filtered_logs(date_start=None, date_end=None, year_branch=None, guard_id
     conn.close()
     return [dict(r) for r in rows]
 
-def seed_database():
-    init_db()
+def wipe_all_vehicle_logs():
     conn = get_db_connection()
     cursor = conn.cursor()
-    
-    cursor.execute("SELECT COUNT(*) as count FROM vehicle_logs")
-    if cursor.fetchone()['count'] > 0:
-        conn.close()
-        return
-
-    print("Seeding sample data for Campus Vehicle Management...")
-    
-    guards_sample = [
-        ("Rajesh Kumar (Gate 1)", "9876543210", generate_password_hash("guard123")),
-        ("Suresh Patel (Gate 2)", "9876543211", generate_password_hash("guard123")),
-        ("Amit Sharma (Gate 1)", "9876543212", generate_password_hash("guard123")),
-    ]
-    
-    guard_ids = []
-    for name, phone, pass_hash in guards_sample:
-        cursor.execute(
-            "INSERT OR IGNORE INTO users (name, phone, password_hash, role) VALUES (?, ?, ?, 'guard')",
-            (name, phone, pass_hash)
-        )
-        cursor.execute("SELECT id, name FROM users WHERE phone = ?", (phone,))
-        g_row = cursor.fetchone()
-        if g_row:
-            guard_ids.append((g_row['id'], g_row['name']))
-            
-    if not guard_ids:
-        conn.close()
-        return
-
-    student_names = [
-        "Aarav Sharma", "Ananya Verma", "Rohan Mehta", "Priya Singh", "Kabir Gupta",
-        "Ishita Joshi", "Devansh Patel", "Sneha Rao", "Aditya Srivastava", "Neha Dixit",
-        "Vikram Choudhury", "Pooja Malhotra", "Rishabh Tripathi", "Diya Sengupta", "Yash Rastogi",
-        "Dr. Alok Verma (HOD CS)", "Sunil Shinde (Auditor)", "Meera Nambiar (Guest Speaker)", "Karan Deshmukh"
-    ]
-    
-    state_codes = ["MP04", "MP09", "MP20", "DL01", "MH12", "UP32"]
-    purposes = ["Class", "Exam", "Library", "Official Work", "Other"]
-    branches = ["1st Year", "2nd Year", "3rd Year", "4th Year", "Visitor / Staff"]
-    gates = ["Main Gate 1", "North Gate 2", "South Gate 3"]
-    
-    now = datetime.now()
-    logs_to_insert = []
-    
-    for days_back in range(6, -1, -1):
-        day_date = now - timedelta(days=days_back)
-        num_entries = random.randint(5, 9)
-        
-        for _ in range(num_entries):
-            hour = random.randint(8, 17)
-            minute = random.randint(0, 59)
-            entry_dt = day_date.replace(hour=hour, minute=minute, second=0)
-            
-            s_name = random.choice(student_names)
-            v_num = f"{random.choice(state_codes)}{chr(random.randint(65, 90))}{chr(random.randint(65, 90))}{random.randint(1000, 9999)}"
-            yr = random.choice(branches)
-            purp = random.choice(purposes)
-            gt = random.choice(gates)
-            g_id, g_name = random.choice(guard_ids)
-            
-            if days_back > 0:
-                stay_minutes = random.randint(45, 360)
-                exit_dt = entry_dt + timedelta(minutes=stay_minutes)
-                status = 'EXITED'
-                exit_str = exit_dt.strftime("%Y-%m-%d %H:%M:%S")
-            else:
-                if random.random() < 0.6 and entry_dt < (now - timedelta(minutes=30)):
-                    stay_minutes = random.randint(30, 180)
-                    exit_dt = min(entry_dt + timedelta(minutes=stay_minutes), now)
-                    status = 'EXITED'
-                    exit_str = exit_dt.strftime("%Y-%m-%d %H:%M:%S")
-                else:
-                    status = 'INSIDE'
-                    exit_str = None
-                    
-            logs_to_insert.append((
-                s_name, v_num, yr, purp, gt,
-                entry_dt.strftime("%Y-%m-%d %H:%M:%S"),
-                exit_str,
-                status, g_id, g_name
-            ))
-            
-    cursor.executemany('''
-        INSERT INTO vehicle_logs 
-        (student_name, vehicle_number, year_branch, purpose, gate_name, entry_time, exit_time, status, guard_id, guard_name)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ''', logs_to_insert)
-    
+    cursor.execute("DELETE FROM vehicle_logs")
     conn.commit()
     conn.close()
-    print(f"Successfully seeded {len(logs_to_insert)} vehicle logs across 7 days!")
+    return True, "All vehicle logs cleared successfully."
 
 if __name__ == '__main__':
-    seed_database()
+    init_db()

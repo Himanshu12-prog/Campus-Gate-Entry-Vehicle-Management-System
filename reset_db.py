@@ -4,7 +4,7 @@ import sqlite3
 from werkzeug.security import generate_password_hash
 import database as db
 
-def reset_to_clean_production_database(admin_phone="9999999999", admin_password="admin123", admin_name="Principal Admin"):
+def reset_to_clean_production_database(admin_phone="admin", admin_password="admin123", admin_name="Principal Admin"):
     print("=" * 60)
     print("   CAMPUS GATE ENTRY & VEHICLE MANAGEMENT SYSTEM")
     print("       Production Database Reset & Setup Utility")
@@ -13,7 +13,7 @@ def reset_to_clean_production_database(admin_phone="9999999999", admin_password=
     db_file = db.DB_FILE
     if os.path.exists(db_file):
         os.remove(db_file)
-        print(f"[✓] Deleted existing database: {db_file}")
+        print(f"[OK] Deleted existing database: {db_file}")
         
     conn = sqlite3.connect(db_file)
     cursor = conn.cursor()
@@ -60,7 +60,7 @@ def reset_to_clean_production_database(admin_phone="9999999999", admin_password=
     conn.commit()
     conn.close()
     
-    print("\n[✓] Fresh Production Database initialized successfully!")
+    print("\n[OK] Fresh Production Database initialized successfully!")
     print(f"[i] Master Admin Created:")
     print(f"    - Name     : {admin_name}")
     print(f"    - Phone/ID : {admin_phone}")
