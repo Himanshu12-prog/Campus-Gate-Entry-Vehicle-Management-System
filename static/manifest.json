@@ -1,0 +1,22 @@
+{
+  "name": "Campus Gate Entry & Vehicle Management",
+  "short_name": "Campus Gate",
+  "description": "Campus Gate Security & Vehicle Entry Control System",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F8FAFC",
+  "theme_color": "#2563EB",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3064/3064155.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3064/3064155.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
