@@ -39,8 +39,8 @@
                             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                                 <i class="fa-solid fa-user"></i>
                             </div>
-                            <input type="text" id="identifier" name="identifier" required placeholder="Guard Phone No or Admin Username"
-                                   class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition">
+                            <input type="text" id="identifier" name="identifier" value="{{ prefill_id or '' }}" required placeholder="Guard Phone No or Admin Username"
+                                   class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition">
                         </div>
                     </div>
 

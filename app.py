@@ -61,6 +61,7 @@ def login():
         
     guard_count = db.get_guard_count()
     active_tab = request.args.get('tab', 'login')
+    prefill_id = request.args.get('prefill', '')
     
     if request.method == 'POST':
         action = request.form.get('action')
@@ -83,7 +84,7 @@ def login():
             success, message = db.register_user(name, phone, password, role)
             if success:
                 flash(message, "success")
-                return render_template('login.html', guard_count=db.get_guard_count(), active_tab='login')
+                return redirect(url_for('login', tab='login', prefill=phone))
             else:
                 flash(message, "danger")
                 return render_template('login.html', guard_count=guard_count, active_tab='signup')
@@ -94,7 +95,7 @@ def login():
             
             if not identifier or not password:
                 flash("Please provide mobile number/username and password.", "danger")
-                return render_template('login.html', guard_count=guard_count, active_tab='login')
+                return render_template('login.html', guard_count=guard_count, active_tab='login', prefill_id=identifier)
                 
             user = db.authenticate_user(identifier, password)
             if user:
@@ -108,10 +109,10 @@ def login():
                     return redirect(url_for('admin_dashboard'))
                 return redirect(url_for('guard_dashboard'))
             else:
-                flash("Invalid phone number / username or password.", "danger")
-                return render_template('login.html', guard_count=guard_count, active_tab='login')
+                flash(f"Invalid login credentials for '{identifier}'. Check your mobile number / username and password.", "danger")
+                return render_template('login.html', guard_count=guard_count, active_tab='login', prefill_id=identifier)
                 
-    return render_template('login.html', guard_count=guard_count, active_tab=active_tab)
+    return render_template('login.html', guard_count=guard_count, active_tab=active_tab, prefill_id=prefill_id)
 
 @app.route('/logout')
 def logout():

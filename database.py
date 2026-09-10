@@ -3,22 +3,25 @@ import os
 from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 
-DB_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'campus_vehicle.db')
+# Allow persistent database path override via environment variable for Cloud/Render hosting
+DEFAULT_DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'campus_vehicle.db')
+DB_FILE = os.getenv('DATABASE_PATH', DEFAULT_DB_PATH)
 
 def get_db_connection():
+    # Ensure directory exists if custom path provided
+    db_dir = os.path.dirname(DB_FILE)
+    if db_dir and not os.path.exists(db_dir):
+        os.makedirs(db_dir, exist_ok=True)
+        
     conn = sqlite3.connect(DB_FILE)
     conn.row_factory = sqlite3.Row
     return conn
 
-def init_db(clean_all=False):
-    if clean_all and os.path.exists(DB_FILE):
-        os.remove(DB_FILE)
-        print("[✓] Removed old database for fresh production setup.")
-
+def init_db(clean_logs_only=False):
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    # Create Users table (Supports both Guard and Admin roles)
+    # Create Users table (Stores Guards and Admin accounts permanently)
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -50,7 +53,7 @@ def init_db(clean_all=False):
         )
     ''')
     
-    # Migration check for gate_name
+    # Schema Migration Check for gate_name
     cursor.execute("PRAGMA table_info(vehicle_logs)")
     columns = [col[1] for col in cursor.fetchall()]
     if 'gate_name' not in columns:
@@ -62,7 +65,7 @@ def init_db(clean_all=False):
             
     conn.commit()
     
-    # Default Master Admin (fallback if no admin exists)
+    # Ensure Master Admin Account exists if no admin registered yet
     cursor.execute("SELECT * FROM users WHERE role = 'admin'")
     admin = cursor.fetchone()
     if not admin:
@@ -72,7 +75,7 @@ def init_db(clean_all=False):
             ('Principal Admin', 'admin', admin_pass_hash)
         )
         conn.commit()
-        print("[✓] Default Master Admin created (Username: admin, Password: admin123)")
+        print("[✓] Initialized Master Admin Account (Username: admin, Password: admin123)")
     
     conn.close()
 
@@ -86,47 +89,60 @@ def get_guard_count():
 
 def register_user(name, phone_or_username, password, role='guard'):
     identifier = str(phone_or_username).strip()
-    if not name or not identifier or not password:
-        return False, "All fields are required."
+    clean_name = str(name).strip()
+    
+    if not clean_name or not identifier or not password:
+        return False, "All fields are required for registration."
         
     if role not in ['guard', 'admin']:
         return False, "Invalid account role selected."
 
+    # If Guard, enforce 10-digit mobile number format
     if role == 'guard':
-        if not identifier.isdigit() or len(identifier) != 10:
+        cleaned_digits = "".join(filter(str.isdigit, identifier))
+        if len(cleaned_digits) != 10:
             return False, "Guard mobile number must be exactly 10 numeric digits."
+        identifier = cleaned_digits
 
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    cursor.execute("SELECT id FROM users WHERE phone = ?", (identifier,))
-    if cursor.fetchone():
+    # Check if phone/username already registered (case insensitive check)
+    cursor.execute("SELECT id, role FROM users WHERE LOWER(phone) = LOWER(?)", (identifier,))
+    existing = cursor.fetchone()
+    if existing:
         conn.close()
-        return False, f"Account identifier '{identifier}' is already registered."
+        existing_role = "Admin" if existing['role'] == 'admin' else "Guard"
+        return False, f"Account identifier '{identifier}' is already registered as a {existing_role}."
     
     pass_hash = generate_password_hash(password)
     cursor.execute(
         "INSERT INTO users (name, phone, password_hash, role) VALUES (?, ?, ?, ?)",
-        (name.strip(), identifier, pass_hash, role)
+        (clean_name, identifier, pass_hash, role)
     )
     conn.commit()
     conn.close()
     
     role_label = "Principal Admin" if role == 'admin' else "Gate Guard"
-    return True, f"{role_label} account for '{name}' created successfully! Please sign in."
+    return True, f"{role_label} account '{clean_name}' ({identifier}) created successfully! You can now log in."
 
 def register_guard(name, phone, password):
     return register_user(name, phone, password, role='guard')
 
 def authenticate_user(identifier, password):
-    identifier = str(identifier).strip()
+    if not identifier or not password:
+        return None
+        
+    clean_id = str(identifier).strip()
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    cursor.execute("SELECT * FROM users WHERE phone = ?", (identifier,))
+    # Check case-insensitive match for phone / username
+    cursor.execute("SELECT * FROM users WHERE LOWER(phone) = LOWER(?)", (clean_id,))
     user = cursor.fetchone()
     
-    if not user and identifier.lower() == 'admin':
+    # Fallback for default 'admin' string if typed
+    if not user and clean_id.lower() == 'admin':
         cursor.execute("SELECT * FROM users WHERE role = 'admin' LIMIT 1")
         user = cursor.fetchone()
         
