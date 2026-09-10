@@ -50,8 +50,91 @@ Because we built PWA support directly into the web app:
 
 ---
 
+## 💻 Method 4: Native Android APK using Android Studio (WebView App)
+
+If you want to build a fully customizable native Android APK using **Android Studio**:
+
+### Step 1: Create a New Android Studio Project
+1. Open **Android Studio** $\rightarrow$ Click **New Project**.
+2. Select **Empty Views Activity** $\rightarrow$ Click **Next**.
+3. Set Name: `Campus Gate Security`
+4. Set Package Name: `com.campusgate.app`
+5. Language: **Java** (or **Kotlin**), Minimum SDK: **API 24 (Android 7.0)**.
+6. Click **Finish**.
+
+### Step 2: Add Internet Permission (`AndroidManifest.xml`)
+Open `app/src/main/AndroidManifest.xml` and add this line inside `<manifest>`:
+```xml
+<uses-permission android:name="android.permission.INTERNET" />
+```
+
+### Step 3: Configure UI (`activity_main.xml`)
+Open `app/src/main/res/layout/activity_main.xml` and replace its content with:
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <WebView
+        android:id="@+id/webView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+</RelativeLayout>
+```
+
+### Step 4: Write WebView Logic (`MainActivity.java`)
+Open `app/src/main/java/com/campusgate/app/MainActivity.java` and replace with:
+```java
+package com.campusgate.app;
+
+import android.os.Bundle;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
+import androidx.appcompat.app.AppCompatActivity;
+
+public class MainActivity extends AppCompatActivity {
+    private WebView webView;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+        webView = findViewById(R.id.webView);
+        WebSettings webSettings = webView.getSettings();
+        webSettings.setJavaScriptEnabled(true);
+        webSettings.setDomStorageEnabled(true);
+
+        webView.setWebViewClient(new WebViewClient());
+        
+        // Replace with your live Render URL or local tunnel URL
+        webView.loadUrl("https://your-app.onrender.com");
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (webView.canGoBack()) {
+            webView.goBack();
+        } else {
+            super.onBackPressed();
+        }
+    }
+}
+```
+
+### Step 5: Build `.apk` File
+1. In Android Studio top menu, click **Build** $\rightarrow$ **Build Bundle(s) / APK(s)** $\rightarrow$ **Build APK(s)**.
+2. Android Studio will compile the code. When finished, a notification appears at bottom right: **"APK(s) generated successfully."**
+3. Click **locate** to open the folder containing `app-debug.apk`.
+4. Rename `app-debug.apk` to `CampusGate.apk` and share it with your clients!
+
+---
+
 ## 📋 Distribution Checklist for Client Sale
 
 When selling the app to a college:
 - Send the `.apk` file via WhatsApp or email.
 - Guards open the `.apk` file on their Android phone/tablet, click **Install**, and launch the app from their phone home screen!
+
