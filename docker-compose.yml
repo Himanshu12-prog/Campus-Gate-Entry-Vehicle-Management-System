@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  campus_gate_app:
+    build: .
+    container_name: campus_gate_vehicle_system
+    restart: always
+    ports:
+      - "5000:5000"
+    environment:
+      - PORT=5000
+      - HOST=0.0.0.0
+      - SECRET_KEY=campus_gate_security_prod_secret_key_2026_x89q
+    volumes:
+      - ./campus_vehicle.db:/app/campus_vehicle.db

@@ -1,0 +1,199 @@
+{% extends 'base.html' %}
+
+{% block title %}Sign In - Campus Gate Vehicle Management{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto my-6 sm:my-12">
+
+    <!-- Header Card -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-xl overflow-hidden">
+        <div class="bg-gradient-to-r from-blue-600 to-teal-600 p-6 text-white text-center">
+            <div class="w-16 h-16 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center mx-auto mb-3 text-3xl">
+                <i class="fa-solid fa-id-card-clip"></i>
+            </div>
+            <h2 class="text-2xl font-bold">Campus Gate Access</h2>
+            <p class="text-blue-100 text-xs mt-1">Guard Duty Portal & Admin Management</p>
+        </div>
+
+        <!-- Tab Switcher -->
+        <div class="flex border-b border-slate-200 bg-slate-50">
+            <button id="tab-login-btn" onclick="switchTab('login')" class="flex-1 py-3 text-sm font-semibold text-center text-blue-600 border-b-2 border-blue-600 focus:outline-none transition-all">
+                <i class="fa-solid fa-right-to-bracket mr-1.5"></i> Sign In
+            </button>
+            <button id="tab-signup-btn" onclick="switchTab('signup')" class="flex-1 py-3 text-sm font-semibold text-center text-slate-500 hover:text-slate-700 focus:outline-none transition-all">
+                <i class="fa-solid fa-user-plus mr-1.5"></i> Guard Registration
+            </button>
+        </div>
+
+        <div class="p-6">
+            <!-- LOGIN FORM -->
+            <div id="form-login" class="space-y-4">
+                <form action="{{ url_for('login') }}" method="POST" class="space-y-4">
+                    <input type="hidden" name="action" value="login">
+
+                    <div>
+                        <label for="identifier" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                            Phone Number or Admin Username
+                        </label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                                <i class="fa-solid fa-user"></i>
+                            </div>
+                            <input type="text" id="identifier" name="identifier" required placeholder="e.g. 9876543210 or admin"
+                                   class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition">
+                        </div>
+                        <p class="text-[11px] text-slate-500 mt-1">Guards enter 10-digit registered phone number. Admin enters 'admin'.</p>
+                    </div>
+
+                    <div>
+                        <label for="password" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                            Password
+                        </label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                                <i class="fa-solid fa-lock"></i>
+                            </div>
+                            <input type="password" id="password" name="password" required placeholder="••••••••"
+                                   class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl text-sm shadow-md hover:shadow-lg transition-all duration-150 flex items-center justify-center space-x-2">
+                        <span>Sign In to Dashboard</span>
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </form>
+
+                <!-- Quick Test Credentials Box -->
+                <div class="mt-6 p-4 rounded-xl bg-slate-50 border border-slate-200">
+                    <div class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center">
+                        <i class="fa-solid fa-key text-teal-600 mr-1.5"></i> Pre-Configured Demo Credentials
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 text-xs">
+                        <button type="button" onclick="fillCredentials('admin', 'admin123')" class="p-2 bg-white border border-slate-200 rounded-lg hover:border-teal-400 hover:bg-teal-50 text-left transition">
+                            <div class="font-bold text-slate-800">Principal Admin</div>
+                            <div class="text-[10px] text-slate-500">User: <span class="font-mono font-semibold">admin</span></div>
+                            <div class="text-[10px] text-slate-500">Pass: <span class="font-mono font-semibold">admin123</span></div>
+                        </button>
+                        <button type="button" onclick="fillCredentials('9876543210', 'guard123')" class="p-2 bg-white border border-slate-200 rounded-lg hover:border-blue-400 hover:bg-blue-50 text-left transition">
+                            <div class="font-bold text-slate-800">Duty Guard 1</div>
+                            <div class="text-[10px] text-slate-500">Phone: <span class="font-mono font-semibold">9876543210</span></div>
+                            <div class="text-[10px] text-slate-500">Pass: <span class="font-mono font-semibold">guard123</span></div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- GUARD SIGNUP FORM -->
+            <div id="form-signup" class="space-y-4 hidden">
+                <div class="flex items-center justify-between p-3 rounded-xl bg-blue-50 border border-blue-200 text-blue-900 text-xs">
+                    <span class="font-medium">System Capacity:</span>
+                    <span class="px-2 py-0.5 rounded-full font-bold bg-blue-600 text-white">{{ guard_count }} / 3 Guards Registered</span>
+                </div>
+
+                {% if guard_count >= 3 %}
+                <div class="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs leading-relaxed">
+                    <i class="fa-solid fa-triangle-exclamation text-amber-600 mr-1 text-sm"></i>
+                    <strong>Limit Reached:</strong> The maximum limit of 3 Gate Guard accounts has been fulfilled. You can log in using existing guard credentials.
+                </div>
+                {% else %}
+                <form action="{{ url_for('login') }}" method="POST" onsubmit="return validateSignupForm()" class="space-y-4">
+                    <input type="hidden" name="action" value="signup">
+
+                    <div>
+                        <label for="name" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                            Guard Full Name
+                        </label>
+                        <input type="text" id="name" name="name" required placeholder="e.g. Vikram Sharma"
+                               class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-800 focus:ring-2 focus:ring-teal-500 outline-none transition">
+                    </div>
+
+                    <div>
+                        <label for="signup_phone" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                            10-Digit Mobile Phone Number
+                        </label>
+                        <input type="tel" id="signup_phone" name="phone" required maxlength="10" placeholder="e.g. 9876543219"
+                               class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-800 focus:ring-2 focus:ring-teal-500 outline-none transition">
+                        <p id="phone-hint" class="text-[11px] text-slate-500 mt-1">Must be exactly 10 numeric digits.</p>
+                    </div>
+
+                    <div>
+                        <label for="signup_password" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                            Password
+                        </label>
+                        <input type="password" id="signup_password" name="password" required placeholder="Set guard password"
+                               class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-800 focus:ring-2 focus:ring-teal-500 outline-none transition">
+                    </div>
+
+                    <div>
+                        <label for="confirm_password" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                            Confirm Password
+                        </label>
+                        <input type="password" id="confirm_password" name="confirm_password" required placeholder="Confirm password"
+                               class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-800 focus:ring-2 focus:ring-teal-500 outline-none transition">
+                    </div>
+
+                    <button type="submit" class="w-full py-3 bg-teal-600 hover:bg-teal-700 text-white font-semibold rounded-xl text-sm shadow-md hover:shadow-lg transition-all duration-150 flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-user-plus"></i>
+                        <span>Register Guard Account</span>
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function switchTab(tab) {
+        const loginForm = document.getElementById('form-login');
+        const signupForm = document.getElementById('form-signup');
+        const loginBtn = document.getElementById('tab-login-btn');
+        const signupBtn = document.getElementById('tab-signup-btn');
+
+        if (tab === 'login') {
+            loginForm.classList.remove('hidden');
+            signupForm.classList.add('hidden');
+            loginBtn.className = "flex-1 py-3 text-sm font-semibold text-center text-blue-600 border-b-2 border-blue-600 focus:outline-none transition-all";
+            signupBtn.className = "flex-1 py-3 text-sm font-semibold text-center text-slate-500 hover:text-slate-700 focus:outline-none transition-all";
+        } else {
+            loginForm.classList.add('hidden');
+            signupForm.classList.remove('hidden');
+            signupBtn.className = "flex-1 py-3 text-sm font-semibold text-center text-teal-600 border-b-2 border-teal-600 focus:outline-none transition-all";
+            loginBtn.className = "flex-1 py-3 text-sm font-semibold text-center text-slate-500 hover:text-slate-700 focus:outline-none transition-all";
+        }
+    }
+
+    function fillCredentials(id, pass) {
+        switchTab('login');
+        document.getElementById('identifier').value = id;
+        document.getElementById('password').value = pass;
+    }
+
+    function validateSignupForm() {
+        const phoneInput = document.getElementById('signup_phone');
+        const pass = document.getElementById('signup_password').value;
+        const confirmPass = document.getElementById('confirm_password').value;
+
+        const val = phoneInput.value.trim();
+        if (!/^\d{10}$/.test(val)) {
+            alert('Phone number must be exactly 10 numeric digits.');
+            phoneInput.focus();
+            return false;
+        }
+
+        if (pass !== confirmPass) {
+            alert('Passwords do not match.');
+            return false;
+        }
+
+        return true;
+    }
+
+    {% if active_tab == 'signup' %}
+    switchTab('signup');
+    {% endif %}
+</script>
+{% endblock %}

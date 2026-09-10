@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Campus Gate Entry & Vehicle Management System{% endblock %}</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            bg: '#F8FAFC',
+                            slate: '#334155',
+                            blue: '#2563EB',
+                            blueHover: '#1D4ED8',
+                            teal: '#0D9488',
+                            tealHover: '#0F766E',
+                            cardBg: '#FFFFFF',
+                            border: '#E2E8F0',
+                            accentAmber: '#F59E0B'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #F8FAFC;
+            color: #334155;
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #F1F5F9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #CBD5E1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94A3B8;
+        }
+    </style>
+    {% block head %}{% endblock %}
+</head>
+<body class="min-h-screen flex flex-col antialiased selection:bg-blue-500 selection:text-white">
+
+    <!-- Top Navigation Bar -->
+    <header class="bg-white border-b border-brand-border sticky top-0 z-40 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <!-- Brand Logo / Title -->
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-blue to-brand-teal flex items-center justify-center text-white font-bold text-xl shadow-md">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg text-slate-800 leading-tight">Campus Gate Manager</h1>
+                    <p class="text-xs text-slate-500 hidden sm:block font-medium">Vehicle Entry & Exit Security System</p>
+                </div>
+            </div>
+
+            <!-- User Status & Actions -->
+            {% if session.user_id %}
+            <div class="flex items-center space-x-3 sm:space-x-4">
+                <div class="text-right hidden xs:block">
+                    <div class="text-xs sm:text-sm font-semibold text-slate-800 flex items-center justify-end space-x-1">
+                        {% if session.user_role == 'admin' %}
+                        <span class="px-2 py-0.5 rounded-full bg-teal-100 text-teal-800 text-[10px] uppercase font-bold tracking-wider">Principal Admin</span>
+                        {% else %}
+                        <span class="px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 text-[10px] uppercase font-bold tracking-wider">Gate Guard</span>
+                        {% endif %}
+                        <span class="ml-1 text-slate-700">{{ session.user_name }}</span>
+                    </div>
+                    <div class="text-[11px] text-slate-500">ID: {{ session.user_phone }}</div>
+                </div>
+
+                <a href="{{ url_for('logout') }}" class="inline-flex items-center justify-center px-3 py-2 border border-slate-200 text-xs sm:text-sm font-medium rounded-lg text-slate-700 bg-slate-50 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-all duration-150 shadow-sm">
+                    <i class="fa-solid fa-right-from-bracket sm:mr-2"></i>
+                    <span class="hidden sm:inline">Sign Out</span>
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </header>
+
+    <!-- Flash Notifications Banner -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full mt-4">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    {% set bg_class = 'bg-emerald-50 border-emerald-200 text-emerald-800' %}
+                    {% set icon = 'fa-circle-check text-emerald-500' %}
+                    {% if category == 'danger' %}
+                        {% set bg_class = 'bg-rose-50 border-rose-200 text-rose-800' %}
+                        {% set icon = 'fa-circle-exclamation text-rose-500' %}
+                    {% elif category == 'warning' %}
+                        {% set bg_class = 'bg-amber-50 border-amber-200 text-amber-800' %}
+                        {% set icon = 'fa-triangle-exclamation text-amber-500' %}
+                    {% elif category == 'info' %}
+                        {% set bg_class = 'bg-sky-50 border-sky-200 text-sky-800' %}
+                        {% set icon = 'fa-circle-info text-sky-500' %}
+                    {% endif %}
+                    
+                    <div class="flex items-center justify-between p-4 mb-3 rounded-xl border {{ bg_class }} shadow-sm text-sm font-medium animate-fadeIn">
+                        <div class="flex items-center space-x-3">
+                            <i class="fa-solid {{ icon }} text-lg"></i>
+                            <span>{{ message }}</span>
+                        </div>
+                        <button onclick="this.parentElement.remove()" class="text-slate-400 hover:text-slate-600 p-1">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <!-- Main Workspace Content -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Page Footer -->
+    <footer class="bg-white border-t border-brand-border py-4 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-xs text-slate-500 flex flex-col sm:flex-row justify-between items-center space-y-2 sm:space-y-0">
+            <div>
+                &copy; 2026 Campus Gate Entry & Vehicle Management System | Strict Light Mode
+            </div>
+            <div class="flex items-center space-x-4">
+                <span class="flex items-center space-x-1.5 text-emerald-600 font-semibold">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span>System Active & Online</span>
+                </span>
+            </div>
+        </div>
+    </footer>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

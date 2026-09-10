@@ -1,0 +1,388 @@
+{% extends 'base.html' %}
+
+{% block title %}Guard Duty Dashboard - Campus Gate Entry{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Top Guard Header & Status Bar -->
+    <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+            <div class="flex items-center space-x-2">
+                <h2 class="text-xl font-bold text-slate-800">Guard Gate Dashboard</h2>
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 flex items-center gap-1">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span> Live Shift Active
+                </span>
+            </div>
+            <p class="text-xs text-slate-500 mt-1">
+                Duty Guard: <strong class="text-slate-700 font-semibold">{{ session.user_name }}</strong> &bull; Tagged Gate Log ID: <span class="font-mono text-slate-600">#GD-{{ session.user_id }}</span>
+            </p>
+        </div>
+
+        <div class="flex items-center space-x-3 text-xs bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+            <div class="flex items-center space-x-1.5 text-slate-600 font-medium">
+                <i class="fa-regular fa-clock text-blue-600 text-sm"></i>
+                <span>Current Time:</span>
+            </div>
+            <div id="live-clock" class="font-mono font-bold text-slate-800 text-sm">--:--:--</div>
+        </div>
+    </div>
+
+    <!-- 1. TOP METRICS CARDS -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <!-- Today Total Entries -->
+        <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+            <div class="absolute -right-3 -bottom-3 text-slate-100 group-hover:text-blue-50 transition-colors text-7xl font-bold pointer-events-none">
+                <i class="fa-solid fa-car"></i>
+            </div>
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Today's Total Entries</span>
+                <div class="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm">
+                    <i class="fa-solid fa-right-to-bracket"></i>
+                </div>
+            </div>
+            <div class="mt-3 flex items-baseline justify-between">
+                <span class="text-3xl font-extrabold text-slate-800">{{ stats.today_total }}</span>
+                <span class="text-xs text-slate-500">vehicles logged</span>
+            </div>
+        </div>
+
+        <!-- Currently Inside Campus -->
+        <div class="bg-white rounded-2xl border border-amber-200 p-5 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+            <div class="absolute -right-3 -bottom-3 text-amber-50 group-hover:text-amber-100/50 transition-colors text-7xl font-bold pointer-events-none">
+                <i class="fa-solid fa-building-user"></i>
+            </div>
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold uppercase tracking-wider text-amber-700">Currently Inside Campus</span>
+                <div class="w-9 h-9 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-sm">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                </div>
+            </div>
+            <div class="mt-3 flex items-baseline justify-between">
+                <span class="text-3xl font-extrabold text-amber-600">{{ stats.currently_inside }}</span>
+                <span class="text-xs font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">Exit Pending</span>
+            </div>
+        </div>
+
+        <!-- Vehicles Exited Today -->
+        <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+            <div class="absolute -right-3 -bottom-3 text-slate-100 group-hover:text-emerald-50 transition-colors text-7xl font-bold pointer-events-none">
+                <i class="fa-solid fa-circle-check"></i>
+            </div>
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Exited Today</span>
+                <div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-sm">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                </div>
+            </div>
+            <div class="mt-3 flex items-baseline justify-between">
+                <span class="text-3xl font-extrabold text-slate-800">{{ stats.exited_today }}</span>
+                <span class="text-xs text-slate-500">vehicles exited</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN TWO-COLUMN WORKSPACE FOR GUARD OPERATOR -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- 2. NEW VEHICLE ENTRY FORM (Left Column) -->
+        <div class="lg:col-span-5 space-y-6">
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden sticky top-20">
+                <div class="bg-slate-900 text-white p-4 flex items-center justify-between">
+                    <div class="flex items-center space-x-2">
+                        <i class="fa-solid fa-square-plus text-blue-400 text-lg"></i>
+                        <h3 class="font-bold text-base">New Vehicle Entry Form</h3>
+                    </div>
+                    <span class="text-[11px] bg-blue-900/60 text-blue-200 px-2 py-0.5 rounded-full font-mono">Auto-Tagged Guard</span>
+                </div>
+
+                <form action="{{ url_for('add_entry') }}" method="POST" class="p-5 space-y-4">
+                    <!-- Student / Visitor Name -->
+                    <div>
+                        <label for="student_name" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                            Student / Visitor Full Name <span class="text-rose-500">*</span>
+                        </label>
+                        <input type="text" id="student_name" name="student_name" required placeholder="e.g. Aarav Sharma"
+                               class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition">
+                    </div>
+
+                    <!-- Vehicle Number (Auto Uppercase) -->
+                    <div>
+                        <label for="vehicle_number" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                            Vehicle Number <span class="text-rose-500">*</span>
+                        </label>
+                        <div class="relative">
+                            <input type="text" id="vehicle_number" name="vehicle_number" required placeholder="e.g. MP04AB1234"
+                                   oninput="formatVehicleInput(this)"
+                                   class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-base font-mono font-bold tracking-wider text-blue-700 uppercase focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition">
+                            <div class="absolute right-3 top-2.5 text-xs text-slate-400 font-sans pointer-events-none">Auto-Upper</div>
+                        </div>
+                        <p class="text-[11px] text-slate-500 mt-1">Formats automatically (e.g. MP04AB1234).</p>
+                    </div>
+
+                    <!-- Grid for Gate Location, Year/Branch & Purpose -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <!-- Gate Selection -->
+                        <div>
+                            <label for="gate_name" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                                Gate Location
+                            </label>
+                            <select id="gate_name" name="gate_name"
+                                    class="w-full px-2.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition">
+                                <option value="Main Gate 1" selected>Main Gate 1</option>
+                                <option value="North Gate 2">North Gate 2</option>
+                                <option value="South Gate 3">South Gate 3</option>
+                            </select>
+                        </div>
+
+                        <!-- Year / Branch Dropdown -->
+                        <div>
+                            <label for="year_branch" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                                Category
+                            </label>
+                            <select id="year_branch" name="year_branch" required
+                                    class="w-full px-2.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition">
+                                <option value="1st Year">1st Year</option>
+                                <option value="2nd Year">2nd Year</option>
+                                <option value="3rd Year">3rd Year</option>
+                                <option value="4th Year">4th Year</option>
+                                <option value="Visitor / Staff" selected>Visitor / Staff</option>
+                            </select>
+                        </div>
+
+                        <!-- Purpose Dropdown -->
+                        <div>
+                            <label for="purpose" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                                Purpose
+                            </label>
+                            <select id="purpose" name="purpose" required
+                                    class="w-full px-2.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition">
+                                <option value="Class">Class</option>
+                                <option value="Exam">Exam</option>
+                                <option value="Library">Library</option>
+                                <option value="Official Work" selected>Official Work</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Entry Time & Auto Guard Tag -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label for="entry_time" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                                Entry Timestamp
+                            </label>
+                            <input type="datetime-local" id="entry_time" name="entry_time" value="{{ now_iso }}"
+                                   class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none transition">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                                Tagged Duty Guard
+                            </label>
+                            <div class="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 truncate">
+                                <i class="fa-solid fa-user-shield text-blue-600 mr-1"></i> {{ session.user_name }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-sm shadow-md hover:shadow-lg transition-all duration-150 flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-circle-check"></i>
+                        <span>Register Vehicle Gate Entry</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- 3. EXIT MANAGEMENT & 7-DAY HISTORY (Right Column) -->
+        <div class="lg:col-span-7 space-y-6">
+
+            <!-- EXIT MANAGEMENT PANEL: Vehicles Currently Inside Campus -->
+            <div class="bg-white rounded-2xl border border-amber-200 shadow-sm overflow-hidden">
+                <div class="bg-amber-500 text-white p-4 flex items-center justify-between">
+                    <div class="flex items-center space-x-2">
+                        <i class="fa-solid fa-car-tunnel text-lg"></i>
+                        <h3 class="font-bold text-base">Quick Exit Action & Gate Pass (Inside Campus)</h3>
+                    </div>
+                    <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-white text-amber-700 shadow-sm">
+                        {{ inside_vehicles|length }} Pending Exit
+                    </span>
+                </div>
+
+                <div class="p-4 max-h-[340px] overflow-y-auto space-y-2">
+                    {% if inside_vehicles %}
+                        {% for vehicle in inside_vehicles %}
+                        <div class="p-3.5 rounded-xl border {% if vehicle.is_overstay %}border-rose-300 bg-rose-50/60{% else %}border-slate-200 bg-slate-50{% endif %} hover:bg-white transition-all flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-xs">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 rounded-xl {% if vehicle.is_overstay %}bg-rose-100 text-rose-700{% else %}bg-amber-100 text-amber-700{% endif %} flex items-center justify-center font-bold text-sm shrink-0">
+                                    <i class="fa-solid fa-car-side"></i>
+                                </div>
+                                <div>
+                                    <div class="flex items-center space-x-2">
+                                        <span class="font-mono font-bold text-slate-800 text-sm tracking-wide">{{ vehicle.vehicle_number }}</span>
+                                        <span class="px-2 py-0.5 rounded-md bg-slate-200 text-slate-700 text-[10px] font-semibold">{{ vehicle.year_branch }}</span>
+                                        
+                                        {% if vehicle.is_overstay %}
+                                        <span class="px-2 py-0.5 rounded-full bg-rose-600 text-white text-[9px] font-bold uppercase tracking-wider animate-pulse">
+                                            Overstay ({{ vehicle.stay_hours }}h inside)
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="text-xs text-slate-600 font-medium mt-0.5">
+                                        {{ vehicle.student_name }} &bull; <span class="text-slate-500">{{ vehicle.purpose }}</span>
+                                    </div>
+                                    <div class="text-[11px] text-slate-500 mt-1 flex items-center space-x-2">
+                                        <span><i class="fa-regular fa-clock text-amber-600 mr-1"></i>Entered: {{ vehicle.entry_time }}</span>
+                                        <span>&bull; {{ vehicle.gate_name or 'Main Gate 1' }}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Actions: Print Slip & Mark Exit -->
+                            <div class="flex items-center space-x-2 shrink-0">
+                                <a href="{{ url_for('print_slip', log_id=vehicle.id) }}" target="_blank"
+                                   class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl border border-slate-300 transition flex items-center space-x-1" title="Print Visitor Pass">
+                                    <i class="fa-solid fa-print"></i>
+                                    <span class="hidden sm:inline">Pass</span>
+                                </a>
+
+                                <form action="{{ url_for('mark_exit', log_id=vehicle.id) }}" method="POST">
+                                    <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow hover:shadow-md transition-all flex items-center space-x-1.5">
+                                        <i class="fa-solid fa-right-from-bracket"></i>
+                                        <span>Mark Exit</span>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="py-8 text-center text-slate-400 text-sm">
+                            <i class="fa-solid fa-circle-check text-emerald-400 text-3xl mb-2"></i>
+                            <p>No vehicles currently pending exit inside campus.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- 4. LAST 7 DAYS HISTORY DATA TABLE -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="p-4 border-b border-slate-200 bg-slate-50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
+                            <i class="fa-solid fa-table-list text-blue-600"></i>
+                            <span>Last 7 Days Entry Logs</span>
+                        </h3>
+                        <p class="text-xs text-slate-500">Filter logs by status or search vehicle plate, name, or purpose</p>
+                    </div>
+
+                    <!-- Search & Filter Controls -->
+                    <form action="{{ url_for('guard_dashboard') }}" method="GET" class="flex items-center gap-2">
+                        <select name="status" onchange="this.form.submit()"
+                                class="px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none">
+                            <option value="ALL" {% if status_f == 'ALL' %}selected{% endif %}>All Status</option>
+                            <option value="INSIDE" {% if status_f == 'INSIDE' %}selected{% endif %}>Inside Campus</option>
+                            <option value="EXITED" {% if status_f == 'EXITED' %}selected{% endif %}>Exited</option>
+                        </select>
+
+                        <div class="relative">
+                            <input type="text" name="search" value="{{ search_q }}" placeholder="Search vehicle..."
+                                   class="pl-8 pr-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none w-36 sm:w-44">
+                            <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2 text-slate-400 text-xs"></i>
+                        </div>
+
+                        {% if search_q or status_f != 'ALL' %}
+                        <a href="{{ url_for('guard_dashboard') }}" class="p-1.5 text-slate-400 hover:text-slate-600 text-xs" title="Reset Filters">
+                            <i class="fa-solid fa-rotate-left"></i>
+                        </a>
+                        {% endif %}
+                    </form>
+                </div>
+
+                <!-- Clean Responsive Data Table -->
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs text-slate-700">
+                        <thead class="bg-slate-100 text-slate-600 uppercase tracking-wider text-[11px] font-bold border-b border-slate-200">
+                            <tr>
+                                <th class="py-3 px-4">Vehicle No</th>
+                                <th class="py-3 px-4">Name & Category</th>
+                                <th class="py-3 px-4">Purpose</th>
+                                <th class="py-3 px-4">Entry Time</th>
+                                <th class="py-3 px-4">Exit Time</th>
+                                <th class="py-3 px-4">Status</th>
+                                <th class="py-3 px-4">Pass</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            {% if recent_logs %}
+                                {% for log in recent_logs %}
+                                <tr class="hover:bg-slate-50/80 transition-colors">
+                                    <td class="py-3 px-4 font-mono font-bold text-blue-700 text-sm">
+                                        {{ log.vehicle_number }}
+                                    </td>
+                                    <td class="py-3 px-4">
+                                        <div class="font-semibold text-slate-800">{{ log.student_name }}</div>
+                                        <div class="text-[10px] text-slate-500">{{ log.year_branch }} &bull; {{ log.gate_name or 'Main Gate 1' }}</div>
+                                    </td>
+                                    <td class="py-3 px-4 font-medium text-slate-700">
+                                        {{ log.purpose }}
+                                    </td>
+                                    <td class="py-3 px-4 whitespace-nowrap text-slate-600">
+                                        {{ log.entry_time }}
+                                    </td>
+                                    <td class="py-3 px-4 whitespace-nowrap text-slate-600">
+                                        {% if log.exit_time %}
+                                            {{ log.exit_time }}
+                                        {% else %}
+                                            <span class="text-amber-600 font-semibold italic text-[11px]">-- Pending --</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="py-3 px-4">
+                                        {% if log.status == 'INSIDE' %}
+                                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200 inline-flex items-center gap-1">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> INSIDE
+                                            </span>
+                                        {% else %}
+                                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200 inline-flex items-center gap-1">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span> EXITED
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="py-3 px-4">
+                                        <a href="{{ url_for('print_slip', log_id=log.id) }}" target="_blank" class="text-blue-600 hover:text-blue-800 font-semibold text-xs flex items-center space-x-1">
+                                            <i class="fa-solid fa-print"></i>
+                                            <span>Slip</span>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="7" class="py-8 text-center text-slate-400">
+                                        No vehicle logs match the specified search/filter.
+                                    </td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function updateClock() {
+        const now = new Date();
+        document.getElementById('live-clock').innerText = now.toLocaleTimeString();
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    function formatVehicleInput(el) {
+        let val = el.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+        el.value = val;
+    }
+</script>
+{% endblock %}
