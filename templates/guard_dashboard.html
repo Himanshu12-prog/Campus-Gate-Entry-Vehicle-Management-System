@@ -1,147 +1,121 @@
 {% extends 'base.html' %}
 
-{% block title %}Guard Duty Dashboard - Campus Gate Entry{% endblock %}
+{% block title %}Guard Gate Dashboard - Campus Vehicle Control{% endblock %}
 
 {% block content %}
-<div class="space-y-6">
+<div class="space-y-4 sm:space-y-6">
 
-    <!-- Top Guard Header & Status Bar -->
-    <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+    <!-- Top Guard Header & Status Bar (Touch Friendly) -->
+    <div class="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
             <div class="flex items-center space-x-2">
-                <h2 class="text-xl font-bold text-slate-800">Guard Gate Dashboard</h2>
-                <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 flex items-center gap-1">
+                <h2 class="text-lg sm:text-xl font-bold text-slate-800">Gate Duty Station</h2>
+                <span class="px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-bold bg-emerald-100 text-emerald-800 flex items-center gap-1">
                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span> Live Shift Active
                 </span>
             </div>
-            <p class="text-xs text-slate-500 mt-1">
-                Duty Guard: <strong class="text-slate-700 font-semibold">{{ session.user_name }}</strong> &bull; Tagged Gate Log ID: <span class="font-mono text-slate-600">#GD-{{ session.user_id }}</span>
+            <p class="text-xs text-slate-500 mt-0.5">
+                Duty Guard: <strong class="text-slate-700 font-semibold">{{ session.user_name }}</strong> &bull; ID: <span class="font-mono text-slate-600">#{{ session.user_phone }}</span>
             </p>
         </div>
 
-        <div class="flex items-center space-x-3 text-xs bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+        <div class="flex items-center justify-between sm:justify-end space-x-3 text-xs bg-slate-50 p-2.5 rounded-xl border border-slate-200">
             <div class="flex items-center space-x-1.5 text-slate-600 font-medium">
                 <i class="fa-regular fa-clock text-blue-600 text-sm"></i>
-                <span>Current Time:</span>
+                <span>Shift Time:</span>
             </div>
             <div id="live-clock" class="font-mono font-bold text-slate-800 text-sm">--:--:--</div>
         </div>
     </div>
 
-    <!-- 1. TOP METRICS CARDS -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <!-- 1. TOP METRICS CARDS (Responsive Grid for Mobile & Tablets) -->
+    <div class="grid grid-cols-3 gap-2.5 sm:gap-4">
         <!-- Today Total Entries -->
-        <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-            <div class="absolute -right-3 -bottom-3 text-slate-100 group-hover:text-blue-50 transition-colors text-7xl font-bold pointer-events-none">
-                <i class="fa-solid fa-car"></i>
-            </div>
+        <div class="bg-white rounded-2xl border border-slate-200 p-3 sm:p-5 shadow-xs flex flex-col justify-between">
             <div class="flex items-center justify-between">
-                <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Today's Total Entries</span>
-                <div class="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm">
+                <span class="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-500">Today Total</span>
+                <div class="w-7 h-7 sm:w-9 sm:h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs sm:text-sm">
                     <i class="fa-solid fa-right-to-bracket"></i>
                 </div>
             </div>
-            <div class="mt-3 flex items-baseline justify-between">
-                <span class="text-3xl font-extrabold text-slate-800">{{ stats.today_total }}</span>
-                <span class="text-xs text-slate-500">vehicles logged</span>
+            <div class="mt-2 sm:mt-3 flex items-baseline justify-between">
+                <span class="text-xl sm:text-3xl font-extrabold text-slate-800">{{ stats.today_total }}</span>
+                <span class="text-[10px] sm:text-xs text-slate-400 hidden sm:inline">entered</span>
             </div>
         </div>
 
         <!-- Currently Inside Campus -->
-        <div class="bg-white rounded-2xl border border-amber-200 p-5 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-            <div class="absolute -right-3 -bottom-3 text-amber-50 group-hover:text-amber-100/50 transition-colors text-7xl font-bold pointer-events-none">
-                <i class="fa-solid fa-building-user"></i>
-            </div>
+        <div class="bg-white rounded-2xl border border-amber-200 p-3 sm:p-5 shadow-xs flex flex-col justify-between">
             <div class="flex items-center justify-between">
-                <span class="text-xs font-bold uppercase tracking-wider text-amber-700">Currently Inside Campus</span>
-                <div class="w-9 h-9 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-sm">
+                <span class="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-amber-700">Inside Campus</span>
+                <div class="w-7 h-7 sm:w-9 sm:h-9 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-xs sm:text-sm">
                     <i class="fa-solid fa-clock-rotate-left"></i>
                 </div>
             </div>
-            <div class="mt-3 flex items-baseline justify-between">
-                <span class="text-3xl font-extrabold text-amber-600">{{ stats.currently_inside }}</span>
-                <span class="text-xs font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">Exit Pending</span>
+            <div class="mt-2 sm:mt-3 flex items-baseline justify-between">
+                <span class="text-xl sm:text-3xl font-extrabold text-amber-600">{{ stats.currently_inside }}</span>
+                <span class="text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded-md hidden sm:inline">Pending Exit</span>
             </div>
         </div>
 
         <!-- Vehicles Exited Today -->
-        <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-            <div class="absolute -right-3 -bottom-3 text-slate-100 group-hover:text-emerald-50 transition-colors text-7xl font-bold pointer-events-none">
-                <i class="fa-solid fa-circle-check"></i>
-            </div>
+        <div class="bg-white rounded-2xl border border-slate-200 p-3 sm:p-5 shadow-xs flex flex-col justify-between">
             <div class="flex items-center justify-between">
-                <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Exited Today</span>
-                <div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-sm">
+                <span class="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-500">Exited</span>
+                <div class="w-7 h-7 sm:w-9 sm:h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-xs sm:text-sm">
                     <i class="fa-solid fa-right-from-bracket"></i>
                 </div>
             </div>
-            <div class="mt-3 flex items-baseline justify-between">
-                <span class="text-3xl font-extrabold text-slate-800">{{ stats.exited_today }}</span>
-                <span class="text-xs text-slate-500">vehicles exited</span>
+            <div class="mt-2 sm:mt-3 flex items-baseline justify-between">
+                <span class="text-xl sm:text-3xl font-extrabold text-slate-800">{{ stats.exited_today }}</span>
+                <span class="text-[10px] sm:text-xs text-slate-400 hidden sm:inline">exited</span>
             </div>
         </div>
     </div>
 
-    <!-- MAIN TWO-COLUMN WORKSPACE FOR GUARD OPERATOR -->
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+    <!-- MAIN ERGONOMIC WORKSPACE FOR TABLETS & SMARTPHONES -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6">
 
-        <!-- 2. NEW VEHICLE ENTRY FORM (Left Column) -->
+        <!-- 2. NEW VEHICLE ENTRY FORM (Large Touch Target Controls) -->
         <div class="lg:col-span-5 space-y-6">
-            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden sticky top-20">
-                <div class="bg-slate-900 text-white p-4 flex items-center justify-between">
+            <div id="new-vehicle-form-card" class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden sticky top-20">
+                <div class="bg-slate-900 text-white p-3.5 sm:p-4 flex items-center justify-between">
                     <div class="flex items-center space-x-2">
                         <i class="fa-solid fa-square-plus text-blue-400 text-lg"></i>
-                        <h3 class="font-bold text-base">New Vehicle Entry Form</h3>
+                        <h3 class="font-bold text-base">New Vehicle Gate Entry</h3>
                     </div>
-                    <span class="text-[11px] bg-blue-900/60 text-blue-200 px-2 py-0.5 rounded-full font-mono">Auto-Tagged Guard</span>
+                    <span class="text-[10px] bg-blue-900/60 text-blue-200 px-2 py-0.5 rounded-full font-mono">Duty Guard Tagged</span>
                 </div>
 
-                <form action="{{ url_for('add_entry') }}" method="POST" class="p-5 space-y-4">
-                    <!-- Student / Visitor Name -->
+                <form action="{{ url_for('add_entry') }}" method="POST" class="p-4 sm:p-5 space-y-3.5">
+                    <!-- Vehicle Number (Auto Uppercase & Large Touch Keyboard) -->
                     <div>
-                        <label for="student_name" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                            Student / Visitor Full Name <span class="text-rose-500">*</span>
-                        </label>
-                        <input type="text" id="student_name" name="student_name" required placeholder="e.g. Aarav Sharma"
-                               class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition">
-                    </div>
-
-                    <!-- Vehicle Number (Auto Uppercase) -->
-                    <div>
-                        <label for="vehicle_number" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                            Vehicle Number <span class="text-rose-500">*</span>
+                        <label for="vehicle_number" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                            Vehicle Plate Number <span class="text-rose-500">*</span>
                         </label>
                         <div class="relative">
                             <input type="text" id="vehicle_number" name="vehicle_number" required placeholder="e.g. MP04AB1234"
-                                   oninput="formatVehicleInput(this)"
-                                   class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-base font-mono font-bold tracking-wider text-blue-700 uppercase focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition">
-                            <div class="absolute right-3 top-2.5 text-xs text-slate-400 font-sans pointer-events-none">Auto-Upper</div>
+                                   oninput="formatVehicleInput(this)" autofocus
+                                   class="w-full px-4 py-3 bg-slate-50 border-2 border-slate-300 rounded-xl text-lg font-mono font-black tracking-widest text-blue-700 uppercase focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white outline-none transition">
+                            <div class="absolute right-3 top-3.5 text-[10px] font-bold text-slate-400 pointer-events-none">AUTO-CAPS</div>
                         </div>
-                        <p class="text-[11px] text-slate-500 mt-1">Formats automatically (e.g. MP04AB1234).</p>
                     </div>
 
-                    <!-- Grid for Gate Location, Year/Branch & Purpose -->
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                        <!-- Gate Selection -->
-                        <div>
-                            <label for="gate_name" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                                Gate Location
-                            </label>
-                            <select id="gate_name" name="gate_name"
-                                    class="w-full px-2.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition">
-                                <option value="Main Gate 1" selected>Main Gate 1</option>
-                                <option value="North Gate 2">North Gate 2</option>
-                                <option value="South Gate 3">South Gate 3</option>
-                            </select>
-                        </div>
+                    <!-- Student / Visitor Name -->
+                    <div>
+                        <label for="student_name" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                            Student / Visitor Name <span class="text-rose-500">*</span>
+                        </label>
+                        <input type="text" id="student_name" name="student_name" required placeholder="e.g. Aarav Sharma"
+                               class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition">
+                    </div>
 
-                        <!-- Year / Branch Dropdown -->
+                    <!-- Category & Purpose (Touch Dropdowns) -->
+                    <div class="grid grid-cols-2 gap-2.5">
                         <div>
-                            <label for="year_branch" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                                Category
-                            </label>
+                            <label for="year_branch" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Category</label>
                             <select id="year_branch" name="year_branch" required
-                                    class="w-full px-2.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition">
+                                    class="w-full px-2.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none transition">
                                 <option value="1st Year">1st Year</option>
                                 <option value="2nd Year">2nd Year</option>
                                 <option value="3rd Year">3rd Year</option>
@@ -150,13 +124,10 @@
                             </select>
                         </div>
 
-                        <!-- Purpose Dropdown -->
                         <div>
-                            <label for="purpose" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                                Purpose
-                            </label>
+                            <label for="purpose" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Purpose</label>
                             <select id="purpose" name="purpose" required
-                                    class="w-full px-2.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition">
+                                    class="w-full px-2.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none transition">
                                 <option value="Class">Class</option>
                                 <option value="Exam">Exam</option>
                                 <option value="Library">Library</option>
@@ -166,87 +137,88 @@
                         </div>
                     </div>
 
-                    <!-- Entry Time & Auto Guard Tag -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <!-- Gate Location & Time -->
+                    <div class="grid grid-cols-2 gap-2.5">
                         <div>
-                            <label for="entry_time" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                                Entry Timestamp
-                            </label>
-                            <input type="datetime-local" id="entry_time" name="entry_time" value="{{ now_iso }}"
-                                   class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none transition">
+                            <label for="gate_name" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Gate Location</label>
+                            <select id="gate_name" name="gate_name"
+                                    class="w-full px-2.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none transition">
+                                <option value="Main Gate 1" selected>Main Gate 1</option>
+                                <option value="North Gate 2">North Gate 2</option>
+                                <option value="South Gate 3">South Gate 3</option>
+                            </select>
                         </div>
+
                         <div>
-                            <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                                Tagged Duty Guard
-                            </label>
-                            <div class="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 truncate">
-                                <i class="fa-solid fa-user-shield text-blue-600 mr-1"></i> {{ session.user_name }}
-                            </div>
+                            <label for="entry_time" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Entry Timestamp</label>
+                            <input type="datetime-local" id="entry_time" name="entry_time" value="{{ now_iso }}"
+                                   class="w-full px-2 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none transition">
                         </div>
                     </div>
 
-                    <button type="submit" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-sm shadow-md hover:shadow-lg transition-all duration-150 flex items-center justify-center space-x-2">
-                        <i class="fa-solid fa-circle-check"></i>
-                        <span>Register Vehicle Gate Entry</span>
+                    <!-- Large Touch Submit Button -->
+                    <button type="submit" class="w-full py-3.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold rounded-xl text-sm shadow-md transition-all active-tap flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-circle-check text-base"></i>
+                        <span>REGISTER GATE ENTRY</span>
                     </button>
                 </form>
             </div>
         </div>
 
-        <!-- 3. EXIT MANAGEMENT & 7-DAY HISTORY (Right Column) -->
-        <div class="lg:col-span-7 space-y-6">
+        <!-- 3. EXIT MANAGEMENT & MOBILE LOGS CARD VIEW -->
+        <div class="lg:col-span-7 space-y-5 sm:space-y-6">
 
             <!-- EXIT MANAGEMENT PANEL: Vehicles Currently Inside Campus -->
             <div class="bg-white rounded-2xl border border-amber-200 shadow-sm overflow-hidden">
-                <div class="bg-amber-500 text-white p-4 flex items-center justify-between">
+                <div class="bg-amber-500 text-white p-3.5 sm:p-4 flex items-center justify-between">
                     <div class="flex items-center space-x-2">
                         <i class="fa-solid fa-car-tunnel text-lg"></i>
-                        <h3 class="font-bold text-base">Quick Exit Action & Gate Pass (Inside Campus)</h3>
+                        <h3 class="font-bold text-base">Inside Campus (Pending Exit)</h3>
                     </div>
-                    <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-white text-amber-700 shadow-sm">
-                        {{ inside_vehicles|length }} Pending Exit
+                    <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-white text-amber-700 shadow-xs">
+                        {{ inside_vehicles|length }} Inside
                     </span>
                 </div>
 
-                <div class="p-4 max-h-[340px] overflow-y-auto space-y-2">
+                <div class="p-3 sm:p-4 max-h-[380px] overflow-y-auto space-y-2.5">
                     {% if inside_vehicles %}
                         {% for vehicle in inside_vehicles %}
-                        <div class="p-3.5 rounded-xl border {% if vehicle.is_overstay %}border-rose-300 bg-rose-50/60{% else %}border-slate-200 bg-slate-50{% endif %} hover:bg-white transition-all flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-xs">
+                        <div class="p-3.5 rounded-2xl border {% if vehicle.is_overstay %}border-rose-300 bg-rose-50/70{% else %}border-slate-200 bg-slate-50/80{% endif %} hover:bg-white transition-all flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-xs">
                             <div class="flex items-center space-x-3">
                                 <div class="w-10 h-10 rounded-xl {% if vehicle.is_overstay %}bg-rose-100 text-rose-700{% else %}bg-amber-100 text-amber-700{% endif %} flex items-center justify-center font-bold text-sm shrink-0">
                                     <i class="fa-solid fa-car-side"></i>
                                 </div>
                                 <div>
-                                    <div class="flex items-center space-x-2">
-                                        <span class="font-mono font-bold text-slate-800 text-sm tracking-wide">{{ vehicle.vehicle_number }}</span>
-                                        <span class="px-2 py-0.5 rounded-md bg-slate-200 text-slate-700 text-[10px] font-semibold">{{ vehicle.year_branch }}</span>
+                                    <div class="flex items-center space-x-2 flex-wrap">
+                                        <span class="font-mono font-black text-slate-800 text-base tracking-wide">{{ vehicle.vehicle_number }}</span>
+                                        <span class="px-2 py-0.5 rounded-md bg-slate-200 text-slate-700 text-[10px] font-bold uppercase">{{ vehicle.year_branch }}</span>
                                         
                                         {% if vehicle.is_overstay %}
                                         <span class="px-2 py-0.5 rounded-full bg-rose-600 text-white text-[9px] font-bold uppercase tracking-wider animate-pulse">
-                                            Overstay ({{ vehicle.stay_hours }}h inside)
+                                            Overstay ({{ vehicle.stay_hours }}h)
                                         </span>
                                         {% endif %}
                                     </div>
-                                    <div class="text-xs text-slate-600 font-medium mt-0.5">
-                                        {{ vehicle.student_name }} &bull; <span class="text-slate-500">{{ vehicle.purpose }}</span>
+                                    <div class="text-xs text-slate-700 font-semibold mt-0.5">
+                                        {{ vehicle.student_name }} &bull; <span class="text-slate-500 font-normal">{{ vehicle.purpose }}</span>
                                     </div>
                                     <div class="text-[11px] text-slate-500 mt-1 flex items-center space-x-2">
-                                        <span><i class="fa-regular fa-clock text-amber-600 mr-1"></i>Entered: {{ vehicle.entry_time }}</span>
+                                        <span><i class="fa-regular fa-clock text-amber-600 mr-1"></i>{{ vehicle.entry_time }}</span>
                                         <span>&bull; {{ vehicle.gate_name or 'Main Gate 1' }}</span>
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- Actions: Print Slip & Mark Exit -->
-                            <div class="flex items-center space-x-2 shrink-0">
+                            <!-- Large Touch Action Buttons for Mobile Guards -->
+                            <div class="flex items-center space-x-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-0 border-slate-200">
                                 <a href="{{ url_for('print_slip', log_id=vehicle.id) }}" target="_blank"
-                                   class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl border border-slate-300 transition flex items-center space-x-1" title="Print Visitor Pass">
-                                    <i class="fa-solid fa-print"></i>
-                                    <span class="hidden sm:inline">Pass</span>
+                                   class="flex-1 sm:flex-initial px-3 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl border border-slate-300 transition text-center flex items-center justify-center space-x-1 active-tap">
+                                    <i class="fa-solid fa-print text-sm"></i>
+                                    <span>Pass Slip</span>
                                 </a>
 
-                                <form action="{{ url_for('mark_exit', log_id=vehicle.id) }}" method="POST">
-                                    <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow hover:shadow-md transition-all flex items-center space-x-1.5">
+                                <form action="{{ url_for('mark_exit', log_id=vehicle.id) }}" method="POST" class="flex-1 sm:flex-initial">
+                                    <button type="submit" class="w-full px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow transition active-tap flex items-center justify-center space-x-1.5">
                                         <i class="fa-solid fa-right-from-bracket"></i>
                                         <span>Mark Exit</span>
                                     </button>
@@ -263,42 +235,36 @@
                 </div>
             </div>
 
-            <!-- 4. LAST 7 DAYS HISTORY DATA TABLE -->
+            <!-- 4. RECENT LOGS (RESPONSIVE TABLE FOR TABLET + CARD VIEW FOR MOBILE) -->
             <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                <div class="p-4 border-b border-slate-200 bg-slate-50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div class="p-3.5 sm:p-4 border-b border-slate-200 bg-slate-50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
                         <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
                             <i class="fa-solid fa-table-list text-blue-600"></i>
-                            <span>Last 7 Days Entry Logs</span>
+                            <span>Vehicle Movement History</span>
                         </h3>
-                        <p class="text-xs text-slate-500">Filter logs by status or search vehicle plate, name, or purpose</p>
+                        <p class="text-xs text-slate-500">Filter logs or search vehicle plate number</p>
                     </div>
 
-                    <!-- Search & Filter Controls -->
+                    <!-- Search Controls -->
                     <form action="{{ url_for('guard_dashboard') }}" method="GET" class="flex items-center gap-2">
                         <select name="status" onchange="this.form.submit()"
-                                class="px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none">
-                            <option value="ALL" {% if status_f == 'ALL' %}selected{% endif %}>All Status</option>
-                            <option value="INSIDE" {% if status_f == 'INSIDE' %}selected{% endif %}>Inside Campus</option>
+                                class="px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 outline-none">
+                            <option value="ALL" {% if status_f == 'ALL' %}selected{% endif %}>All</option>
+                            <option value="INSIDE" {% if status_f == 'INSIDE' %}selected{% endif %}>Inside</option>
                             <option value="EXITED" {% if status_f == 'EXITED' %}selected{% endif %}>Exited</option>
                         </select>
 
-                        <div class="relative">
-                            <input type="text" name="search" value="{{ search_q }}" placeholder="Search vehicle..."
-                                   class="pl-8 pr-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none w-36 sm:w-44">
+                        <div class="relative flex-1 sm:flex-initial">
+                            <input type="text" name="search" value="{{ search_q }}" placeholder="Search plate..."
+                                   class="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs text-slate-800 outline-none">
                             <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2 text-slate-400 text-xs"></i>
                         </div>
-
-                        {% if search_q or status_f != 'ALL' %}
-                        <a href="{{ url_for('guard_dashboard') }}" class="p-1.5 text-slate-400 hover:text-slate-600 text-xs" title="Reset Filters">
-                            <i class="fa-solid fa-rotate-left"></i>
-                        </a>
-                        {% endif %}
                     </form>
                 </div>
 
-                <!-- Clean Responsive Data Table -->
-                <div class="overflow-x-auto">
+                <!-- Desktop / Tablet Table View -->
+                <div class="hidden sm:block overflow-x-auto">
                     <table class="w-full text-left text-xs text-slate-700">
                         <thead class="bg-slate-100 text-slate-600 uppercase tracking-wider text-[11px] font-bold border-b border-slate-200">
                             <tr>
@@ -322,28 +288,16 @@
                                         <div class="font-semibold text-slate-800">{{ log.student_name }}</div>
                                         <div class="text-[10px] text-slate-500">{{ log.year_branch }} &bull; {{ log.gate_name or 'Main Gate 1' }}</div>
                                     </td>
-                                    <td class="py-3 px-4 font-medium text-slate-700">
-                                        {{ log.purpose }}
-                                    </td>
+                                    <td class="py-3 px-4 font-medium text-slate-700">{{ log.purpose }}</td>
+                                    <td class="py-3 px-4 whitespace-nowrap text-slate-600">{{ log.entry_time }}</td>
                                     <td class="py-3 px-4 whitespace-nowrap text-slate-600">
-                                        {{ log.entry_time }}
-                                    </td>
-                                    <td class="py-3 px-4 whitespace-nowrap text-slate-600">
-                                        {% if log.exit_time %}
-                                            {{ log.exit_time }}
-                                        {% else %}
-                                            <span class="text-amber-600 font-semibold italic text-[11px]">-- Pending --</span>
-                                        {% endif %}
+                                        {% if log.exit_time %}{{ log.exit_time }}{% else %}<span class="text-amber-600 font-semibold italic">-- Pending --</span>{% endif %}
                                     </td>
                                     <td class="py-3 px-4">
                                         {% if log.status == 'INSIDE' %}
-                                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200 inline-flex items-center gap-1">
-                                                <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> INSIDE
-                                            </span>
+                                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">INSIDE</span>
                                         {% else %}
-                                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200 inline-flex items-center gap-1">
-                                                <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span> EXITED
-                                            </span>
+                                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">EXITED</span>
                                         {% endif %}
                                     </td>
                                     <td class="py-3 px-4">
@@ -356,13 +310,40 @@
                                 {% endfor %}
                             {% else %}
                                 <tr>
-                                    <td colspan="7" class="py-8 text-center text-slate-400">
-                                        No vehicle logs match the specified search/filter.
-                                    </td>
+                                    <td colspan="7" class="py-8 text-center text-slate-400">No vehicle logs match specified filter.</td>
                                 </tr>
                             {% endif %}
                         </tbody>
                     </table>
+                </div>
+
+                <!-- Mobile Card View (For Mobile Smartphones) -->
+                <div class="block sm:hidden divide-y divide-slate-100">
+                    {% if recent_logs %}
+                        {% for log in recent_logs %}
+                        <div class="p-3.5 space-y-2">
+                            <div class="flex items-center justify-between">
+                                <span class="font-mono font-black text-blue-700 text-base tracking-wide">{{ log.vehicle_number }}</span>
+                                {% if log.status == 'INSIDE' %}
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">INSIDE</span>
+                                {% else %}
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">EXITED</span>
+                                {% endif %}
+                            </div>
+                            <div class="text-xs text-slate-800 font-semibold">
+                                {{ log.student_name }} &bull; <span class="text-slate-500 font-medium">{{ log.year_branch }}</span>
+                            </div>
+                            <div class="text-[11px] text-slate-500 flex justify-between items-center">
+                                <span>In: {{ log.entry_time }}</span>
+                                <a href="{{ url_for('print_slip', log_id=log.id) }}" target="_blank" class="text-blue-600 font-bold">
+                                    <i class="fa-solid fa-print mr-0.5"></i> Pass
+                                </a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="p-6 text-center text-slate-400 text-xs">No logs match search criteria.</div>
+                    {% endif %}
                 </div>
             </div>
 
