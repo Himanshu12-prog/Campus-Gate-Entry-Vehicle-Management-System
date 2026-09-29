@@ -150,8 +150,15 @@
                         </div>
 
                         <div>
-                            <label for="entry_time" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Entry Timestamp</label>
+                            <div class="flex items-center justify-between mb-1">
+                                <label for="entry_time" class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Entry Timestamp</label>
+                                <button type="button" onclick="syncEntryTimeToIST(true)" class="text-[10px] text-blue-600 font-bold hover:underline flex items-center gap-1" title="Reset to Live IST Time">
+                                    <i class="fa-solid fa-arrows-rotate text-[9px] text-teal-600"></i>
+                                    <span>Live IST Sync</span>
+                                </button>
+                            </div>
                             <input type="datetime-local" id="entry_time" name="entry_time" value="{{ now_iso }}"
+                                   onchange="markEntryTimeEdited()" onfocus="markEntryTimeEdited()"
                                    class="w-full px-2 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none transition">
                         </div>
                     </div>
@@ -354,9 +361,49 @@
 
 {% block scripts %}
 <script>
+    let isEntryTimeUserEdited = false;
+
+    function markEntryTimeEdited() {
+        isEntryTimeUserEdited = true;
+    }
+
+    function getISTIsoString() {
+        const d = new Date();
+        const formatter = new Intl.DateTimeFormat('en-US', {
+            timeZone: 'Asia/Kolkata',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            hourCycle: 'h23'
+        });
+        const parts = formatter.formatToParts(d);
+        const p = {};
+        parts.forEach(part => p[part.type] = part.value);
+        return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}`;
+    }
+
+    function syncEntryTimeToIST(force = false) {
+        if (force) {
+            isEntryTimeUserEdited = false;
+        }
+        if (!isEntryTimeUserEdited) {
+            const entryInput = document.getElementById('entry_time');
+            if (entryInput) {
+                entryInput.value = getISTIsoString();
+            }
+        }
+    }
+
     function updateClock() {
-        const now = new Date();
-        document.getElementById('live-clock').innerText = now.toLocaleTimeString();
+        const options = { timeZone: 'Asia/Kolkata', hour12: true, hour: '2-digit', minute: '2-digit', second: '2-digit' };
+        const nowStr = new Date().toLocaleTimeString('en-IN', options);
+        const clockEl = document.getElementById('live-clock');
+        if (clockEl) {
+            clockEl.innerText = nowStr + ' IST';
+        }
+        syncEntryTimeToIST(false);
     }
     setInterval(updateClock, 1000);
     updateClock();

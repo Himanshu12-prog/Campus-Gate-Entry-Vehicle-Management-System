@@ -132,7 +132,7 @@ def guard_dashboard():
     status_f = request.args.get('status', 'ALL').strip()
     
     recent_logs = db.get_recent_vehicle_logs(search_query=search_q, status_filter=status_f, days=30)
-    now_iso = datetime.now().strftime("%Y-%m-%dT%H:%M")
+    now_iso = db.get_ist_now().strftime("%Y-%m-%dT%H:%M")
     
     return render_template(
         'guard_dashboard.html',
@@ -268,7 +268,7 @@ def clear_all_logs():
 @login_required
 @role_required('admin')
 def hourly_chart_api():
-    date_str = request.args.get('date', datetime.now().strftime("%Y-%m-%d"))
+    date_str = request.args.get('date', db.get_ist_now().strftime("%Y-%m-%d"))
     chart_data = db.get_hourly_peak_data(date_str)
     return jsonify(chart_data)
 
@@ -293,7 +293,7 @@ def export_csv():
             'Student / Visitor Name': l['student_name'],
             'Year / Branch': l['year_branch'],
             'Purpose of Visit': l['purpose'],
-            'Gate Location': l['gate_name'] if 'gate_name' in l.keys() else 'Main Gate 1',
+            'Gate Location': l.get('gate_name') or 'Main Gate 1',
             'Entry Timestamp': l['entry_time'],
             'Exit Timestamp': l['exit_time'] if l['exit_time'] else 'INSIDE CAMPUS',
             'Status': l['status'],
@@ -305,7 +305,7 @@ def export_csv():
     df.to_csv(output, index=False, encoding='utf-8')
     output.seek(0)
     
-    filename = f"Campus_Vehicle_Logs_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+    filename = f"Campus_Vehicle_Logs_{db.get_ist_now().strftime('%Y%m%d_%H%M%S')}.csv"
     return send_file(
         output,
         mimetype='text/csv',
@@ -334,7 +334,7 @@ def export_excel():
             'Student / Visitor Name': l['student_name'],
             'Year / Branch': l['year_branch'],
             'Purpose of Visit': l['purpose'],
-            'Gate Location': l['gate_name'] if 'gate_name' in l.keys() else 'Main Gate 1',
+            'Gate Location': l.get('gate_name') or 'Main Gate 1',
             'Entry Timestamp': l['entry_time'],
             'Exit Timestamp': l['exit_time'] if l['exit_time'] else 'INSIDE CAMPUS',
             'Status': l['status'],
@@ -347,7 +347,7 @@ def export_excel():
         df.to_excel(writer, sheet_name='Campus Vehicle Logs', index=False)
     output.seek(0)
     
-    filename = f"Campus_Vehicle_Logs_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    filename = f"Campus_Vehicle_Logs_{db.get_ist_now().strftime('%Y%m%d_%H%M%S')}.xlsx"
     return send_file(
         output,
         mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',

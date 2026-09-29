@@ -1,7 +1,14 @@
 import sqlite3
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from werkzeug.security import generate_password_hash, check_password_hash
+
+# Indian Standard Timezone (IST - UTC+5:30)
+IST = timezone(timedelta(hours=5, minutes=30))
+
+def get_ist_now():
+    """Returns current datetime in Indian Standard Time (IST)."""
+    return datetime.now(IST)
 
 # Allow persistent database path override via environment variable for Cloud/Render hosting
 DEFAULT_DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'campus_vehicle.db')
@@ -209,9 +216,9 @@ def add_vehicle_entry(student_name, vehicle_number, year_branch, purpose, gate_n
         try:
             parsed_time = datetime.fromisoformat(entry_time_str).strftime("%Y-%m-%d %H:%M:%S")
         except ValueError:
-            parsed_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            parsed_time = get_ist_now().strftime("%Y-%m-%d %H:%M:%S")
     else:
-        parsed_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        parsed_time = get_ist_now().strftime("%Y-%m-%d %H:%M:%S")
         
     cursor.execute('''
         INSERT INTO vehicle_logs 
@@ -242,9 +249,9 @@ def mark_vehicle_exit(log_id, exit_time_str=None):
         try:
             parsed_exit = datetime.fromisoformat(exit_time_str).strftime("%Y-%m-%d %H:%M:%S")
         except ValueError:
-            parsed_exit = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            parsed_exit = get_ist_now().strftime("%Y-%m-%d %H:%M:%S")
     else:
-        parsed_exit = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        parsed_exit = get_ist_now().strftime("%Y-%m-%d %H:%M:%S")
         
     cursor.execute(
         "UPDATE vehicle_logs SET exit_time = ?, status = 'EXITED' WHERE id = ?",
@@ -258,7 +265,7 @@ def get_guard_dashboard_stats():
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    today_date = datetime.now().strftime("%Y-%m-%d")
+    today_date = get_ist_now().strftime("%Y-%m-%d")
     
     cursor.execute("SELECT COUNT(*) as count FROM vehicle_logs WHERE date(entry_time) = ?", (today_date,))
     today_total = cursor.fetchone()['count']
@@ -279,7 +286,8 @@ def get_guard_dashboard_stats():
 def calculate_overstay(entry_time_str):
     try:
         entry_dt = datetime.strptime(entry_time_str, "%Y-%m-%d %H:%M:%S")
-        duration = datetime.now() - entry_dt
+        now_naive = get_ist_now().replace(tzinfo=None)
+        duration = now_naive - entry_dt
         hours = duration.total_seconds() / 3600.0
         return round(hours, 1), hours >= 4.0
     except Exception:
@@ -305,7 +313,7 @@ def get_recent_vehicle_logs(search_query="", status_filter="ALL", days=30):
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    cutoff_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d 00:00:00")
+    cutoff_date = (get_ist_now() - timedelta(days=days)).strftime("%Y-%m-%d 00:00:00")
     query = "SELECT * FROM vehicle_logs WHERE entry_time >= ?"
     params = [cutoff_date]
     
@@ -349,8 +357,8 @@ def get_admin_dashboard_stats():
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    today_date = datetime.now().strftime("%Y-%m-%d")
-    week_start = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
+    today_date = get_ist_now().strftime("%Y-%m-%d")
+    week_start = (get_ist_now() - timedelta(days=7)).strftime("%Y-%m-%d")
     
     cursor.execute("SELECT COUNT(*) as count FROM vehicle_logs WHERE date(entry_time) = ?", (today_date,))
     today_count = cursor.fetchone()['count']
@@ -374,7 +382,7 @@ def get_admin_dashboard_stats():
 
 def get_hourly_peak_data(date_str=None):
     if not date_str:
-        date_str = datetime.now().strftime("%Y-%m-%d")
+        date_str = get_ist_now().strftime("%Y-%m-%d")
         
     conn = get_db_connection()
     cursor = conn.cursor()
