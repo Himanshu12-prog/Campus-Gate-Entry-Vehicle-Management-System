@@ -187,10 +187,10 @@
             <i class="fa-solid fa-chart-pie text-base mb-1"></i>
             <span>Overview</span>
         </a>
-        <a href="{{ url_for('login', tab='signup') }}" target="_blank" class="flex flex-col items-center text-xs font-semibold text-slate-500 active-tap">
+        <button type="button" onclick="if(typeof openCreateUserModal === 'function'){ openCreateUserModal(); } else { window.location.href='{{ url_for('admin_dashboard') }}'; }" class="flex flex-col items-center text-xs font-semibold text-slate-500 active-tap">
             <i class="fa-solid fa-user-plus text-base mb-1 text-blue-600"></i>
             <span>Add Guard</span>
-        </a>
+        </button>
         <a href="{{ url_for('logout') }}" class="flex flex-col items-center text-xs font-semibold text-slate-500 hover:text-rose-600 active-tap">
             <i class="fa-solid fa-right-from-bracket text-base mb-1"></i>
             <span>Logout</span>

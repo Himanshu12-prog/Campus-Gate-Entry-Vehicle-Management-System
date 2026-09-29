@@ -147,12 +147,6 @@ def authenticate_user(identifier, password):
     # Check case-insensitive match for phone / username
     cursor.execute("SELECT * FROM users WHERE LOWER(phone) = LOWER(?)", (clean_id,))
     user = cursor.fetchone()
-    
-    # Fallback for default 'admin' string if typed
-    if not user and clean_id.lower() == 'admin':
-        cursor.execute("SELECT * FROM users WHERE role = 'admin' LIMIT 1")
-        user = cursor.fetchone()
-        
     conn.close()
     
     if user and check_password_hash(user['password_hash'], password):

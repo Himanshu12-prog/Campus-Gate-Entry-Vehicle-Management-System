@@ -1,7 +1,7 @@
 import os
 import io
 from functools import wraps
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask import (
     Flask, render_template, request, redirect, url_for, 
     session, flash, jsonify, send_file
@@ -15,6 +15,7 @@ load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', 'campus_gate_security_prod_secret_key_2026_x89q')
+app.permanent_session_lifetime = timedelta(hours=8)
 
 # Initialize database schema cleanly
 db.init_db()
@@ -99,6 +100,7 @@ def login():
                 
             user = db.authenticate_user(identifier, password)
             if user:
+                session.permanent = True
                 session['user_id'] = user['id']
                 session['user_name'] = user['name']
                 session['user_phone'] = user['phone']
@@ -232,6 +234,31 @@ def admin_dashboard():
         guard_id=guard_id,
         search_q=search_q
     )
+
+@app.route('/admin/users/create', methods=['POST'])
+@login_required
+@role_required('admin')
+def create_user_by_admin():
+    name = request.form.get('name', '').strip()
+    phone = request.form.get('phone', '').strip()
+    password = request.form.get('password', '').strip()
+    confirm_password = request.form.get('confirm_password', '').strip()
+    role = request.form.get('role', 'guard').strip()
+
+    if not name or not phone or not password:
+        flash("All fields are required for account registration.", "danger")
+        return redirect(url_for('admin_dashboard'))
+
+    if password != confirm_password:
+        flash("Passwords do not match.", "danger")
+        return redirect(url_for('admin_dashboard'))
+
+    success, message = db.register_user(name, phone, password, role)
+    if success:
+        flash(message, "success")
+    else:
+        flash(message, "danger")
+    return redirect(url_for('admin_dashboard'))
 
 @app.route('/admin/users/delete/<int:user_id>', methods=['POST'])
 @login_required
