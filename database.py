@@ -1,5 +1,6 @@
 import sqlite3
 import os
+import csv
 from datetime import datetime, timedelta, timezone
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -13,6 +14,72 @@ def get_ist_now():
 # Allow persistent database path override via environment variable for Cloud/Render hosting
 DEFAULT_DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'campus_vehicle.db')
 DB_FILE = os.getenv('DATABASE_PATH', DEFAULT_DB_PATH)
+BACKUP_CSV_FILE = os.path.join(os.path.dirname(DB_FILE), 'vehicle_logs_backup.csv')
+
+def auto_backup_entry(student_name, vehicle_number, year_branch, purpose, gate_name, entry_time, guard_id, guard_name):
+    """Auto-appends every vehicle entry to a persistent CSV backup file for zero data loss."""
+    try:
+        file_exists = os.path.exists(BACKUP_CSV_FILE)
+        with open(BACKUP_CSV_FILE, mode='a', newline='', encoding='utf-8') as f:
+            writer = csv.writer(f)
+            if not file_exists:
+                writer.writerow(['student_name', 'vehicle_number', 'year_branch', 'purpose', 'gate_name', 'entry_time', 'exit_time', 'status', 'guard_id', 'guard_name'])
+            writer.writerow([student_name, vehicle_number, year_branch, purpose, gate_name, entry_time, '', 'INSIDE', guard_id, guard_name])
+    except Exception as e:
+        print(f"[CSV Backup Warning]: {e}")
+
+def update_backup_exit(vehicle_number, exit_time):
+    """Updates exit timestamp in CSV backup file."""
+    try:
+        if not os.path.exists(BACKUP_CSV_FILE):
+            return
+        rows = []
+        with open(BACKUP_CSV_FILE, mode='r', encoding='utf-8') as f:
+            reader = csv.reader(f)
+            header = next(reader, None)
+            if header:
+                rows.append(header)
+                for row in reader:
+                    if len(row) >= 9 and row[1] == vehicle_number and row[7] == 'INSIDE':
+                        row[6] = exit_time
+                        row[7] = 'EXITED'
+                    rows.append(row)
+        with open(BACKUP_CSV_FILE, mode='w', newline='', encoding='utf-8') as f:
+            writer = csv.writer(f)
+            writer.writerows(rows)
+    except Exception as e:
+        print(f"[CSV Backup Exit Warning]: {e}")
+
+def restore_from_csv_backup():
+    """Auto-restores vehicle logs from CSV backup if database is reset or cleared."""
+    try:
+        if not os.path.exists(BACKUP_CSV_FILE):
+            return 0
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT COUNT(*) as count FROM vehicle_logs")
+        if cursor.fetchone()['count'] > 0:
+            conn.close()
+            return 0
+            
+        restored = 0
+        with open(BACKUP_CSV_FILE, mode='r', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            for r in reader:
+                cursor.execute('''
+                    INSERT INTO vehicle_logs (student_name, vehicle_number, year_branch, purpose, gate_name, entry_time, exit_time, status, guard_id, guard_name)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (r['student_name'], r['vehicle_number'], r['year_branch'], r['purpose'], r['gate_name'], r['entry_time'], r.get('exit_time', ''), r.get('status', 'INSIDE'), r['guard_id'], r['guard_name']))
+                restored += 1
+        conn.commit()
+        conn.close()
+        if restored > 0:
+            print(f"[Auto-Recovery] Restored {restored} vehicle logs from persistent CSV backup!")
+        return restored
+    except Exception as e:
+        print(f"[Auto-Recovery Warning]: {e}")
+        return 0
 
 def get_db_connection():
     # Ensure directory exists if custom path provided
@@ -85,6 +152,9 @@ def init_db(clean_logs_only=False):
         print("[✓] Initialized Master Admin Account (Username: admin, Password: admin123)")
     
     conn.close()
+    
+    # Check and restore logs from CSV backup if database was wiped or reset
+    restore_from_csv_backup()
 
 def get_guard_count():
     conn = get_db_connection()
@@ -223,6 +293,10 @@ def add_vehicle_entry(student_name, vehicle_number, year_branch, purpose, gate_n
     conn.commit()
     new_id = cursor.lastrowid
     conn.close()
+    
+    # Auto-backup entry to persistent CSV
+    auto_backup_entry(student_name.strip(), formatted_v_num, year_branch, purpose, gate_name or 'Main Gate 1', parsed_time, guard_id, guard_name)
+    
     return True, f"Vehicle {formatted_v_num} entry recorded successfully!", new_id
 
 def mark_vehicle_exit(log_id, exit_time_str=None):
@@ -253,6 +327,10 @@ def mark_vehicle_exit(log_id, exit_time_str=None):
     )
     conn.commit()
     conn.close()
+    
+    # Update CSV backup
+    update_backup_exit(log['vehicle_number'], parsed_exit)
+    
     return True, f"Vehicle {log['vehicle_number']} exit recorded at {parsed_exit}."
 
 def get_guard_dashboard_stats(guard_id=None):
