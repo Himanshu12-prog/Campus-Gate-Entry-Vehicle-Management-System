@@ -133,7 +133,6 @@
                                 <option value="1st Year">1st Year</option>
                                 <option value="2nd Year">2nd Year</option>
                                 <option value="3rd Year">3rd Year</option>
-                                <option value="4th Year">4th Year</option>
                                 <option value="Visitor / Staff" selected>Visitor / Staff</option>
                             </select>
                         </div>
@@ -142,10 +141,10 @@
                             <label for="purpose" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Purpose</label>
                             <select id="purpose" name="purpose" required
                                     class="w-full px-2.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none transition">
-                                <option value="Class">Class</option>
+                                <option value="Class" selected>Class</option>
                                 <option value="Exam">Exam</option>
                                 <option value="Library">Library</option>
-                                <option value="Official Work" selected>Official Work</option>
+                                <option value="Official Work">Official Work</option>
                                 <option value="Other">Other</option>
                             </select>
                         </div>
@@ -191,20 +190,29 @@
 
             <!-- EXIT MANAGEMENT PANEL: Vehicles Currently Inside Campus -->
             <div class="bg-white rounded-2xl border border-amber-200 shadow-sm overflow-hidden">
-                <div class="bg-amber-500 text-white p-3.5 sm:p-4 flex items-center justify-between">
+                <div class="bg-amber-500 text-white p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                     <div class="flex items-center space-x-2">
                         <i class="fa-solid fa-car-tunnel text-lg"></i>
                         <h3 class="font-bold text-base">Inside Campus (Pending Exit)</h3>
                     </div>
-                    <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-white text-amber-700 shadow-xs">
-                        {{ inside_vehicles|length }} Inside
-                    </span>
+                    <div class="flex items-center gap-2">
+                        <!-- Live Search for Pending Vehicles -->
+                        <div class="relative flex-1 sm:w-48">
+                            <input type="text" id="pending-search-input" onkeyup="filterPendingVehicles()" placeholder="Search plate or name..."
+                                   class="w-full pl-8 pr-2.5 py-1 bg-white/95 focus:bg-white text-slate-800 placeholder-slate-400 rounded-lg text-xs font-semibold outline-none shadow-inner border border-amber-300">
+                            <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2 text-slate-400 text-xs"></i>
+                        </div>
+                        <span id="pending-count-badge" class="px-2.5 py-1 rounded-full text-xs font-bold bg-white text-amber-700 shadow-xs shrink-0">
+                            {{ inside_vehicles|length }} Inside
+                        </span>
+                    </div>
                 </div>
 
-                <div class="p-3 sm:p-4 max-h-[380px] overflow-y-auto space-y-2.5">
+                <div id="pending-vehicles-list" class="p-3 sm:p-4 max-h-[380px] overflow-y-auto space-y-2.5">
                     {% if inside_vehicles %}
                         {% for vehicle in inside_vehicles %}
-                        <div class="p-3.5 rounded-2xl border {% if vehicle.is_overstay %}border-rose-300 bg-rose-50/70{% else %}border-slate-200 bg-slate-50/80{% endif %} hover:bg-white transition-all flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-xs">
+                        <div class="pending-vehicle-card p-3.5 rounded-2xl border {% if vehicle.is_overstay %}border-rose-300 bg-rose-50/70{% else %}border-slate-200 bg-slate-50/80{% endif %} hover:bg-white transition-all flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-xs"
+                             data-search-text="{{ vehicle.vehicle_number }} {{ vehicle.student_name }} {{ vehicle.purpose }} {{ vehicle.year_branch }}">
                             <div class="flex items-center space-x-3">
                                 <div class="w-10 h-10 rounded-xl {% if vehicle.is_overstay %}bg-rose-100 text-rose-700{% else %}bg-amber-100 text-amber-700{% endif %} flex items-center justify-center font-bold text-sm shrink-0">
                                     <i class="fa-solid fa-car-side"></i>
@@ -426,6 +434,25 @@
     function formatVehicleInput(el) {
         let val = el.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
         el.value = val;
+    }
+
+    function filterPendingVehicles() {
+        const input = (document.getElementById('pending-search-input')?.value || '').toLowerCase().trim();
+        const items = document.querySelectorAll('.pending-vehicle-card');
+        let count = 0;
+        items.forEach(item => {
+            const text = (item.getAttribute('data-search-text') || '').toLowerCase();
+            if (text.includes(input)) {
+                item.style.display = '';
+                count++;
+            } else {
+                item.style.display = 'none';
+            }
+        });
+        const countEl = document.getElementById('pending-count-badge');
+        if (countEl) {
+            countEl.innerText = count + ' Inside';
+        }
     }
 </script>
 {% endblock %}
