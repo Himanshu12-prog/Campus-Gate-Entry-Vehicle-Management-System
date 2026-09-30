@@ -116,6 +116,42 @@ def login():
                 
     return render_template('login.html', guard_count=guard_count, active_tab=active_tab, prefill_id=prefill_id)
 
+@app.route('/forgot_password', methods=['POST'])
+def forgot_password():
+    identifier = request.form.get('identifier', '').strip()
+    new_password = request.form.get('new_password', '').strip()
+    confirm_password = request.form.get('confirm_password', '').strip()
+
+    if not identifier or not new_password:
+        flash("Please provide Mobile Phone Number / Username and new password.", "danger")
+        return redirect(url_for('login', tab='forgot'))
+
+    if new_password != confirm_password:
+        flash("Passwords do not match.", "danger")
+        return redirect(url_for('login', tab='forgot'))
+
+    if len(new_password) < 4:
+        flash("Password must be at least 4 characters long.", "danger")
+        return redirect(url_for('login', tab='forgot'))
+
+    conn = db.get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, name, role FROM users WHERE LOWER(phone) = LOWER(?)", (identifier,))
+    user = cursor.fetchone()
+    conn.close()
+
+    if not user:
+        flash(f"No registered account found for '{identifier}'. Check your mobile number or username.", "danger")
+        return redirect(url_for('login', tab='forgot'))
+
+    success, message = db.reset_user_password(user['id'], new_password)
+    if success:
+        flash(f"Password for {user['name']} updated successfully! You can now sign in with your new password.", "success")
+        return redirect(url_for('login', tab='login', prefill=identifier))
+    else:
+        flash(message, "danger")
+        return redirect(url_for('login', tab='forgot'))
+
 @app.route('/logout')
 def logout():
     session.clear()
@@ -210,6 +246,8 @@ def admin_dashboard():
     
     date_start = request.args.get('date_start', '')
     date_end = request.args.get('date_end', '')
+    if not date_start:
+        date_start = (db.get_ist_now() - timedelta(days=30)).strftime("%Y-%m-%d")
     year_branch = request.args.get('year_branch', 'ALL')
     guard_id = request.args.get('guard_id', 'ALL')
     search_q = request.args.get('search', '').strip()

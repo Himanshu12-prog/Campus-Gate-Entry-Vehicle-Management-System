@@ -497,9 +497,11 @@ def get_filtered_logs(date_start=None, date_end=None, year_branch=None, guard_id
     query = "SELECT * FROM vehicle_logs WHERE 1=1"
     params = []
     
-    if date_start:
-        query += " AND date(entry_time) >= ?"
-        params.append(date_start)
+    if not date_start:
+        date_start = (get_ist_now() - timedelta(days=30)).strftime("%Y-%m-%d")
+        
+    query += " AND date(entry_time) >= ?"
+    params.append(date_start)
     if date_end:
         query += " AND date(entry_time) <= ?"
         params.append(date_end)

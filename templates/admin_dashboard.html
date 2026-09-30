@@ -195,9 +195,9 @@
                 <div>
                     <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
                         <i class="fa-solid fa-filter text-teal-600"></i>
-                        <span>Centralized Vehicle Movement Report</span>
+                        <span>Centralized Vehicle Movement Report (Last 30 Days History)</span>
                     </h3>
-                    <p class="text-xs text-slate-500">Filter vehicle movement by date range, category/branch, or duty guard</p>
+                    <p class="text-xs text-slate-500">Showing last 30 days movement history by default. Filter by custom date range, category, or duty guard.</p>
                 </div>
                 <div class="text-xs text-slate-500 font-semibold">
                     Found <span class="text-slate-800 font-bold text-sm">{{ logs|length }}</span> record(s)
@@ -353,6 +353,11 @@
                 <button type="submit" class="px-4 py-2 bg-blue-600 text-white font-bold text-xs rounded-xl shadow hover:bg-blue-700 transition">
                     Save New Password
                 </button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <!-- Create New User Modal -->
 <div id="create-user-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 hidden">
     <div class="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full p-6">

@@ -1,0 +1,3 @@
+student_name,vehicle_number,year_branch,purpose,gate_name,entry_time,exit_time,status,guard_id,guard_name
+Production Student,MP04AB8888,1st Year,Class,Main Gate 1,2026-09-30 23:56:11,2026-09-30 23:56:11,EXITED,2,Duty Guard Alpha
+Production Student,MP04AB8888,1st Year,Class,Main Gate 1,2026-10-01 00:09:05,2026-10-01 00:09:05,EXITED,2,Duty Guard Alpha
