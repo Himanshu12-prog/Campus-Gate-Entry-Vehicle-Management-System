@@ -15,6 +15,105 @@ def get_ist_now():
 DEFAULT_DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'campus_vehicle.db')
 DB_FILE = os.getenv('DATABASE_PATH', DEFAULT_DB_PATH)
 BACKUP_CSV_FILE = os.path.join(os.path.dirname(DB_FILE), 'vehicle_logs_backup.csv')
+USERS_BACKUP_CSV_FILE = os.path.join(os.path.dirname(DB_FILE), 'users_backup.csv')
+
+def auto_backup_user(name, phone, password_hash, role, created_at=None):
+    """Appends or updates a user account in persistent CSV backup file for zero data loss."""
+    try:
+        if not created_at:
+            created_at = get_ist_now().strftime('%Y-%m-%d %H:%M:%S')
+        users_dict = {}
+        if os.path.exists(USERS_BACKUP_CSV_FILE):
+            with open(USERS_BACKUP_CSV_FILE, mode='r', encoding='utf-8') as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    if 'phone' in row and row['phone']:
+                        users_dict[str(row['phone']).strip()] = row
+        users_dict[str(phone).strip()] = {
+            'name': name,
+            'phone': str(phone).strip(),
+            'password_hash': password_hash,
+            'role': role,
+            'created_at': created_at
+        }
+        with open(USERS_BACKUP_CSV_FILE, mode='w', newline='', encoding='utf-8') as f:
+            writer = csv.writer(f)
+            writer.writerow(['name', 'phone', 'password_hash', 'role', 'created_at'])
+            for u in users_dict.values():
+                writer.writerow([u['name'], u['phone'], u['password_hash'], u['role'], u['created_at']])
+    except Exception as e:
+        print(f"[User Backup Warning]: {e}")
+
+def remove_user_from_backup(phone):
+    """Removes a user account from persistent CSV backup file."""
+    try:
+        if not os.path.exists(USERS_BACKUP_CSV_FILE):
+            return
+        phone = str(phone).strip()
+        rows = []
+        with open(USERS_BACKUP_CSV_FILE, mode='r', encoding='utf-8') as f:
+            reader = csv.reader(f)
+            header = next(reader, None)
+            if header:
+                rows.append(header)
+                for r in reader:
+                    if len(r) >= 2 and str(r[1]).strip() != phone:
+                        rows.append(r)
+        with open(USERS_BACKUP_CSV_FILE, mode='w', newline='', encoding='utf-8') as f:
+            writer = csv.writer(f)
+            writer.writerows(rows)
+    except Exception as e:
+        print(f"[User Backup Delete Warning]: {e}")
+
+def sync_all_users_to_backup():
+    """Syncs all existing database users to persistent CSV backup file."""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT name, phone, password_hash, role, created_at FROM users")
+        users = cursor.fetchall()
+        conn.close()
+
+        with open(USERS_BACKUP_CSV_FILE, mode='w', newline='', encoding='utf-8') as f:
+            writer = csv.writer(f)
+            writer.writerow(['name', 'phone', 'password_hash', 'role', 'created_at'])
+            for u in users:
+                writer.writerow([u['name'], u['phone'], u['password_hash'], u['role'], u['created_at']])
+    except Exception as e:
+        print(f"[Users Sync Warning]: {e}")
+
+def restore_users_from_csv_backup():
+    """Auto-restores guard and admin accounts from CSV backup if database is reset or missing users."""
+    try:
+        if not os.path.exists(USERS_BACKUP_CSV_FILE):
+            return 0
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT phone FROM users")
+        existing_phones = set(str(row['phone']).strip() for row in cursor.fetchall())
+        
+        restored = 0
+        with open(USERS_BACKUP_CSV_FILE, mode='r', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            for r in reader:
+                p = str(r.get('phone', '')).strip()
+                if p and p not in existing_phones:
+                    created = r.get('created_at') or get_ist_now().strftime('%Y-%m-%d %H:%M:%S')
+                    cursor.execute('''
+                        INSERT INTO users (name, phone, password_hash, role, created_at)
+                        VALUES (?, ?, ?, ?, ?)
+                    ''', (r['name'], p, r['password_hash'], r['role'], created))
+                    existing_phones.add(p)
+                    restored += 1
+        conn.commit()
+        conn.close()
+        if restored > 0:
+            print(f"[Auto-Recovery] Restored {restored} guard/admin accounts from persistent CSV backup!")
+        return restored
+    except Exception as e:
+        print(f"[Users Recovery Warning]: {e}")
+        return 0
 
 def auto_backup_entry(student_name, vehicle_number, year_branch, purpose, gate_name, entry_time, guard_id, guard_name):
     """Auto-appends every vehicle entry to a persistent CSV backup file for zero data loss."""
@@ -139,6 +238,9 @@ def init_db(clean_logs_only=False):
             
     conn.commit()
     
+    # Check and restore users from CSV backup if database was reset
+    restore_users_from_csv_backup()
+    
     # Ensure Master Admin Account exists if no admin registered yet
     cursor.execute("SELECT * FROM users WHERE role = 'admin'")
     admin = cursor.fetchone()
@@ -152,6 +254,9 @@ def init_db(clean_logs_only=False):
         print("[✓] Initialized Master Admin Account (Username: admin, Password: admin123)")
     
     conn.close()
+    
+    # Ensure all DB users are synced to CSV backup
+    sync_all_users_to_backup()
     
     # Check and restore logs from CSV backup if database was wiped or reset
     restore_from_csv_backup()
@@ -193,12 +298,16 @@ def register_user(name, phone_or_username, password, role='guard'):
         return False, f"Account identifier '{identifier}' is already registered as a {existing_role}."
     
     pass_hash = generate_password_hash(password)
+    created_now = get_ist_now().strftime('%Y-%m-%d %H:%M:%S')
     cursor.execute(
-        "INSERT INTO users (name, phone, password_hash, role) VALUES (?, ?, ?, ?)",
-        (clean_name, identifier, pass_hash, role)
+        "INSERT INTO users (name, phone, password_hash, role, created_at) VALUES (?, ?, ?, ?, ?)",
+        (clean_name, identifier, pass_hash, role, created_now)
     )
     conn.commit()
     conn.close()
+    
+    # Persistent CSV backup for zero data loss across updates/restarts
+    auto_backup_user(clean_name, identifier, pass_hash, role, created_now)
     
     role_label = "Principal Admin" if role == 'admin' else "Gate Guard"
     return True, f"{role_label} account '{clean_name}' ({identifier}) created successfully! You can now log in."
@@ -235,6 +344,10 @@ def delete_user(user_id):
     cursor.execute("DELETE FROM users WHERE id = ?", (user_id,))
     conn.commit()
     conn.close()
+    
+    # Remove user from persistent CSV backup
+    remove_user_from_backup(user['phone'])
+    
     return True, f"Account '{user['name']}' removed successfully."
 
 def delete_guard(guard_id):
@@ -247,8 +360,12 @@ def reset_user_password(user_id, new_password):
     pass_hash = generate_password_hash(new_password)
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("UPDATE users SET password_hash = ? WHERE id = ?", (pass_hash, user_id))
-    conn.commit()
+    cursor.execute("SELECT name, phone, role, created_at FROM users WHERE id = ?", (user_id,))
+    u = cursor.fetchone()
+    if u:
+        cursor.execute("UPDATE users SET password_hash = ? WHERE id = ?", (pass_hash, user_id))
+        conn.commit()
+        auto_backup_user(u['name'], u['phone'], pass_hash, u['role'], u['created_at'])
     conn.close()
     return True, "Password updated successfully."
 
