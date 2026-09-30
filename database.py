@@ -255,7 +255,7 @@ def mark_vehicle_exit(log_id, exit_time_str=None):
     conn.close()
     return True, f"Vehicle {log['vehicle_number']} exit recorded at {parsed_exit}."
 
-def get_guard_dashboard_stats():
+def get_guard_dashboard_stats(guard_id=None):
     conn = get_db_connection()
     cursor = conn.cursor()
     
@@ -270,11 +270,18 @@ def get_guard_dashboard_stats():
     cursor.execute("SELECT COUNT(*) as count FROM vehicle_logs WHERE status = 'EXITED' AND date(exit_time) = ?", (today_date,))
     exited_today = cursor.fetchone()['count']
     
+    my_shift_count = 0
+    if guard_id:
+        cursor.execute("SELECT COUNT(*) as count FROM vehicle_logs WHERE guard_id = ? AND date(entry_time) = ?", (guard_id, today_date))
+        row = cursor.fetchone()
+        my_shift_count = row['count'] if row else 0
+    
     conn.close()
     return {
         "today_total": today_total,
         "currently_inside": currently_inside,
-        "exited_today": exited_today
+        "exited_today": exited_today,
+        "my_shift_count": my_shift_count
     }
 
 def calculate_overstay(entry_time_str):

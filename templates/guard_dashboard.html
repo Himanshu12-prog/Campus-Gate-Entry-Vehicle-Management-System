@@ -29,18 +29,32 @@
     </div>
 
     <!-- 1. TOP METRICS CARDS (Responsive Grid for Mobile & Tablets) -->
-    <div class="grid grid-cols-3 gap-2.5 sm:gap-4">
-        <!-- Today Total Entries -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+        <!-- Today Total Entries (Shared Across All Shifts) -->
         <div class="bg-white rounded-2xl border border-slate-200 p-3 sm:p-5 shadow-xs flex flex-col justify-between">
             <div class="flex items-center justify-between">
-                <span class="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-500">Today Total</span>
+                <span class="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-500">Campus Total (Shared)</span>
                 <div class="w-7 h-7 sm:w-9 sm:h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs sm:text-sm">
-                    <i class="fa-solid fa-right-to-bracket"></i>
+                    <i class="fa-solid fa-layer-group"></i>
                 </div>
             </div>
             <div class="mt-2 sm:mt-3 flex items-baseline justify-between">
                 <span class="text-xl sm:text-3xl font-extrabold text-slate-800">{{ stats.today_total }}</span>
-                <span class="text-[10px] sm:text-xs text-slate-400 hidden sm:inline">entered</span>
+                <span class="text-[10px] font-semibold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-md">All Guards</span>
+            </div>
+        </div>
+
+        <!-- My Shift Entries (This Duty Guard) -->
+        <div class="bg-white rounded-2xl border border-indigo-200 p-3 sm:p-5 shadow-xs flex flex-col justify-between">
+            <div class="flex items-center justify-between">
+                <span class="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-indigo-700">My Shift Entries</span>
+                <div class="w-7 h-7 sm:w-9 sm:h-9 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs sm:text-sm">
+                    <i class="fa-solid fa-user-check"></i>
+                </div>
+            </div>
+            <div class="mt-2 sm:mt-3 flex items-baseline justify-between">
+                <span class="text-xl sm:text-3xl font-extrabold text-indigo-700">{{ stats.my_shift_count }}</span>
+                <span class="text-[10px] font-bold text-indigo-800 bg-indigo-50 px-1.5 py-0.5 rounded-md">My Shift</span>
             </div>
         </div>
 
@@ -54,7 +68,7 @@
             </div>
             <div class="mt-2 sm:mt-3 flex items-baseline justify-between">
                 <span class="text-xl sm:text-3xl font-extrabold text-amber-600">{{ stats.currently_inside }}</span>
-                <span class="text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded-md hidden sm:inline">Pending Exit</span>
+                <span class="text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded-md">Pending Exit</span>
             </div>
         </div>
 
@@ -68,7 +82,7 @@
             </div>
             <div class="mt-2 sm:mt-3 flex items-baseline justify-between">
                 <span class="text-xl sm:text-3xl font-extrabold text-slate-800">{{ stats.exited_today }}</span>
-                <span class="text-[10px] sm:text-xs text-slate-400 hidden sm:inline">exited</span>
+                <span class="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-md">Exited Today</span>
             </div>
         </div>
     </div>
@@ -209,9 +223,10 @@
                                     <div class="text-xs text-slate-700 font-semibold mt-0.5">
                                         {{ vehicle.student_name }} &bull; <span class="text-slate-500 font-normal">{{ vehicle.purpose }}</span>
                                     </div>
-                                    <div class="text-[11px] text-slate-500 mt-1 flex items-center space-x-2">
+                                    <div class="text-[11px] text-slate-500 mt-1 flex items-center space-x-2 flex-wrap">
                                         <span><i class="fa-regular fa-clock text-amber-600 mr-1"></i>{{ vehicle.entry_time }}</span>
                                         <span>&bull; {{ vehicle.gate_name or 'Main Gate 1' }}</span>
+                                        <span class="text-slate-700 font-semibold bg-slate-200/80 px-1.5 py-0.5 rounded text-[10px]">&bull; Guard: {{ vehicle.guard_name }}</span>
                                     </div>
                                 </div>
                             </div>

@@ -127,7 +127,7 @@ def logout():
 @login_required
 @role_required('guard')
 def guard_dashboard():
-    stats = db.get_guard_dashboard_stats()
+    stats = db.get_guard_dashboard_stats(guard_id=session.get('user_id'))
     inside_vehicles = db.get_active_inside_vehicles()
     
     search_q = request.args.get('search', '').strip()
