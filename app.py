@@ -170,6 +170,7 @@ def guard_dashboard():
     status_f = request.args.get('status', 'ALL').strip()
     
     recent_logs = db.get_recent_vehicle_logs(search_query=search_q, status_filter=status_f, days=30)
+    known_vehicles = db.get_known_vehicle_numbers()
     now_iso = db.get_ist_now().strftime("%Y-%m-%dT%H:%M")
     
     return render_template(
@@ -177,10 +178,19 @@ def guard_dashboard():
         stats=stats,
         inside_vehicles=inside_vehicles,
         recent_logs=recent_logs,
+        known_vehicles=known_vehicles,
         search_q=search_q,
         status_f=status_f,
         now_iso=now_iso
     )
+
+@app.route('/api/vehicle_lookup/<path:vehicle_number>')
+@login_required
+def vehicle_lookup(vehicle_number):
+    details = db.get_last_vehicle_details(vehicle_number)
+    if details:
+        return jsonify({'success': True, 'data': details})
+    return jsonify({'success': False, 'message': 'Vehicle not found'})
 
 @app.route('/api/entry', methods=['POST'])
 @login_required

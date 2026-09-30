@@ -376,6 +376,38 @@ def format_vehicle_number(v_num):
     cleaned = "".join(v_num.upper().split())
     return cleaned
 
+def get_last_vehicle_details(vehicle_number):
+    """Fetches the most recent entry details for a vehicle number to auto-fill details on repeat visits."""
+    formatted = format_vehicle_number(vehicle_number)
+    if not formatted:
+        return None
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT student_name, year_branch, purpose, gate_name
+        FROM vehicle_logs
+        WHERE vehicle_number = ?
+        ORDER BY id DESC LIMIT 1
+    ''', (formatted,))
+    row = cursor.fetchone()
+    conn.close()
+    if row:
+        return dict(row)
+    return None
+
+def get_known_vehicle_numbers(limit=100):
+    """Returns a list of distinct previously registered vehicle numbers for datalist autocomplete."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT DISTINCT vehicle_number, student_name
+        FROM vehicle_logs
+        ORDER BY id DESC LIMIT ?
+    ''', (limit,))
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
 def add_vehicle_entry(student_name, vehicle_number, year_branch, purpose, gate_name, entry_time_str, guard_id, guard_name):
     formatted_v_num = format_vehicle_number(vehicle_number)
     if not formatted_v_num or len(formatted_v_num) < 6:

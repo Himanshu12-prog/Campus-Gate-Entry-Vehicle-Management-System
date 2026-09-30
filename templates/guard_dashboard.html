@@ -102,16 +102,40 @@
                 </div>
 
                 <form action="{{ url_for('add_entry') }}" method="POST" class="p-4 sm:p-5 space-y-3.5">
-                    <!-- Vehicle Number (Auto Uppercase & Large Touch Keyboard) -->
+                    <!-- Vehicle Number (Auto Uppercase, Autocomplete & Auto-Fill) -->
                     <div>
-                        <label for="vehicle_number" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                            Vehicle Plate Number <span class="text-rose-500">*</span>
-                        </label>
+                        <div class="flex items-center justify-between mb-1">
+                            <label for="vehicle_number" class="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                                Vehicle Plate Number <span class="text-rose-500">*</span>
+                            </label>
+                            <span class="text-[10px] text-teal-700 font-bold bg-teal-50 px-2 py-0.5 rounded-md flex items-center gap-1">
+                                <i class="fa-solid fa-bolt text-amber-500"></i> Auto-Fill Active
+                            </span>
+                        </div>
                         <div class="relative">
                             <input type="text" id="vehicle_number" name="vehicle_number" required placeholder="e.g. MP04AB1234"
-                                   oninput="formatVehicleInput(this)" autofocus
+                                   list="known_vehicles_list" autocomplete="off"
+                                   oninput="formatVehicleInput(this); checkAutoFillVehicle(this.value);"
+                                   onchange="checkAutoFillVehicle(this.value);" autofocus
                                    class="w-full px-4 py-3 bg-slate-50 border-2 border-slate-300 rounded-xl text-lg font-mono font-black tracking-widest text-blue-700 uppercase focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white outline-none transition">
                             <div class="absolute right-3 top-3.5 text-[10px] font-bold text-slate-400 pointer-events-none">AUTO-CAPS</div>
+                            
+                            <datalist id="known_vehicles_list">
+                                {% if known_vehicles %}
+                                    {% for kv in known_vehicles %}
+                                    <option value="{{ kv.vehicle_number }}">{{ kv.student_name }}</option>
+                                    {% endfor %}
+                                {% endif %}
+                            </datalist>
+                        </div>
+                        
+                        <!-- Auto-Fill Success Toast Indicator -->
+                        <div id="autofill-toast" class="hidden mt-1.5 p-2 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-semibold flex items-center justify-between shadow-xs transition-all animate-fade-in">
+                            <span class="flex items-center gap-1.5">
+                                <i class="fa-solid fa-wand-magic-sparkles text-emerald-600"></i>
+                                <span>Recognized! Details auto-filled from previous visit.</span>
+                            </span>
+                            <span class="text-[9px] bg-emerald-600 text-white px-1.5 py-0.5 rounded-full font-bold uppercase">Auto-Filled</span>
                         </div>
                     </div>
 
@@ -453,6 +477,46 @@
         if (countEl) {
             countEl.innerText = count + ' Inside';
         }
+    }
+
+    let autoFillTimer = null;
+    let lastCheckedVehicle = '';
+
+    function checkAutoFillVehicle(vNum) {
+        clearTimeout(autoFillTimer);
+        const cleaned = (vNum || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+        if (cleaned.length < 5 || cleaned === lastCheckedVehicle) {
+            return;
+        }
+        
+        autoFillTimer = setTimeout(() => {
+            fetch(`/api/vehicle_lookup/${cleaned}`)
+                .then(res => res.json())
+                .then(res => {
+                    if (res.success && res.data) {
+                        lastCheckedVehicle = cleaned;
+                        const d = res.data;
+                        const studentInput = document.getElementById('student_name');
+                        const yearSelect = document.getElementById('year_branch');
+                        const purposeSelect = document.getElementById('purpose');
+                        const gateSelect = document.getElementById('gate_name');
+                        const toast = document.getElementById('autofill-toast');
+
+                        if (studentInput && d.student_name) studentInput.value = d.student_name;
+                        if (yearSelect && d.year_branch) yearSelect.value = d.year_branch;
+                        if (purposeSelect && d.purpose) purposeSelect.value = d.purpose;
+                        if (gateSelect && d.gate_name) gateSelect.value = d.gate_name;
+
+                        if (toast) {
+                            toast.classList.remove('hidden');
+                            setTimeout(() => {
+                                toast.classList.add('hidden');
+                            }, 5000);
+                        }
+                    }
+                })
+                .catch(err => console.error("Vehicle lookup error:", err));
+        }, 300);
     }
 </script>
 {% endblock %}
